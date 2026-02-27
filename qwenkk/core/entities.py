@@ -6,7 +6,11 @@ class PIIEntity(BaseModel):
 
     original: str = Field(description="The exact text as it appears in the document")
     category: str = Field(
-        description="PII category: name, date, id, address, phone, email, institution, age"
+        description=(
+            "PII category. For dates, use specific subtype: "
+            "date_of_birth, visit_date, report_date, admission_date, date. "
+            "Other categories: name, id, address, phone, email, institution, age"
+        )
     )
     placeholder: str = Field(description="The replacement placeholder, e.g. [AD_1], [TARIH_1]")
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
@@ -46,8 +50,11 @@ class PIIResponse(BaseModel):
                             "category": {
                                 "type": "string",
                                 "description": (
-                                    "PII category: name, date, id, address, "
-                                    "phone, email, institution, age"
+                                    "PII category. For dates use specific subtype: "
+                                    "date_of_birth, visit_date, report_date, "
+                                    "admission_date, date. "
+                                    "Other: name, id, address, phone, email, "
+                                    "institution, age"
                                 ),
                             },
                             "placeholder": {

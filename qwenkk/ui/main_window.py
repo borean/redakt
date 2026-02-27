@@ -979,7 +979,9 @@ class MainWindow(QMainWindow):
                 e.original: e.placeholder for e in self._entities
                 if e.category == "date"
             }
-            self._entities = self.anonymizer._apply_age_conversion(self._entities)
+            self._entities = self.anonymizer._apply_age_conversion(
+                self._entities, self._extracted_text
+            )
         else:
             # Restore original placeholders
             for e in self._entities:

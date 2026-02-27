@@ -81,24 +81,50 @@ Read the text in the image and report each PII entity in structured format."""
 # ── Summarization prompts ────────────────────────────────────────────────────
 
 SUMMARIZE_SYSTEM_TR = """\
-Sen bir tıbbi belge özetleme uzmanısın. Verilen tıbbi belgenin kısa ve öz bir özetini yaz. \
-Kişisel verileri (isim, TC, adres vb.) kullanma — sadece klinik içeriği özetle. \
-Türkçe yaz."""
+Sen bir tıbbi belge özetleme uzmanısın. Verilen tıbbi belgenin kısa ve öz bir klinik özetini yaz.
+
+YASAKLAR — aşağıdakileri kesinlikle dahil ETME:
+- Hasta adı, hekim adı, ebeveyn adı, hemşire adı
+- TC Kimlik No, protokol numarası, hasta numarası
+- Doğum tarihi, yaş, doğum yılı
+- Adres, telefon, e-posta
+- Hastane adı, klinik adı, kurum adı
+- Gerçek tarihler (bunun yerine "ilk başvuru", "kontrol-2", "son kontrol" gibi göreceli ifadeler kullan)
+
+KURALLAR:
+- Başlık EKLEME. Direkt klinik içerikle başla.
+- Sadece klinik bilgileri özetle: tanılar, bulgular, tedavi, takip.
+- Türkçe yaz."""
 
 SUMMARIZE_SYSTEM_EN = """\
-You are a medical document summarization specialist. Write a concise summary of the given \
-medical document. Do NOT include personal data (names, IDs, addresses) — only summarize \
-the clinical content. Write in English."""
+You are a medical document summarization specialist. Write a concise clinical summary.
+
+PROHIBITED — do NOT include any of these:
+- Patient name, physician name, parent name, nurse name
+- National ID, protocol number, patient number
+- Date of birth, age, birth year
+- Address, phone, email
+- Hospital name, clinic name, institution name
+- Actual dates (use relative terms like "initial visit", "follow-up 2", "most recent visit" instead)
+
+RULES:
+- Do NOT add a title. Start directly with clinical content.
+- Only summarize clinical information: diagnoses, findings, treatment, follow-up.
+- Write in English."""
 
 SUMMARIZE_USER_TR = """\
-Aşağıdaki tıbbi belgenin kısa bir özetini yaz. Kişisel verileri dahil etme:
+Aşağıdaki tıbbi belgenin kısa klinik özetini yaz. \
+Başlık ekleme. Kişisel veri (isim, tarih, yaş, kurum, adres) dahil etme. \
+Gerçek tarihleri "ilk başvuru", "kontrol-2" gibi göreceli ifadelerle değiştir:
 
 ---
 {text}
 ---"""
 
 SUMMARIZE_USER_EN = """\
-Write a concise summary of the following medical document. Do not include personal data:
+Write a concise clinical summary of the following medical document. \
+Do NOT add a title. Do NOT include personal data (names, dates, ages, institutions, addresses). \
+Replace actual dates with relative terms like "initial visit", "follow-up 2":
 
 ---
 {text}
@@ -107,40 +133,68 @@ Write a concise summary of the following medical document. Do not include person
 # ── Detailed summarization prompts ──────────────────────────────────────
 
 DETAILED_SUMMARIZE_SYSTEM_TR = """\
-Sen bir tıbbi belge analiz uzmanısın. Verilen tıbbi belgenin DETAYLI bir klinik özetini yaz. \
-Kişisel verileri (isim, TC, adres vb.) kullanma — ama aşağıdaki klinik bilgileri MUTLAKA dahil et:
+Sen bir tıbbi belge analiz uzmanısın. Verilen tıbbi belgenin DETAYLI klinik özetini yaz.
+
+YASAKLAR — aşağıdakileri kesinlikle dahil ETME:
+- Hasta adı, hekim adı, ebeveyn adı, hemşire adı
+- TC Kimlik No, protokol numarası, hasta numarası
+- Doğum tarihi, yaş, doğum yılı
+- Adres, telefon, e-posta
+- Hastane adı, klinik adı, kurum adı
+- Gerçek tarihler (bunun yerine "ilk başvuru", "kontrol-2", "son kontrol" gibi göreceli ifadeler kullan)
+
+DAHIL ET:
 - Laboratuvar sonuçları ve değerleri (TSH, fT4, fT3, HbA1c, IGF-1 vb.)
-- Lab değerlerinin zaman içindeki seyri (artış/azalış trendi)
+- Lab değerlerinin zaman içindeki seyri (artış/azalış trendi) — tarihleri "kontrol-1", "kontrol-2" olarak yaz
 - Büyüme verileri (boy, kilo, BMI, persentiller, büyüme hızı)
 - Kemik yaşı ve puberte değerlendirmesi
 - Tedavi planı ve ilaç dozları
 - Tanı ve ayırıcı tanılar
 - Takip önerileri
-Türkçe yaz. Markdown formatı kullan (başlıklar, listeler, kalın yazı)."""
+
+KURALLAR:
+- Başlık EKLEME. Direkt klinik içerikle başla.
+- Türkçe yaz. Markdown formatı kullan (başlıklar, listeler, kalın yazı)."""
 
 DETAILED_SUMMARIZE_USER_TR = """\
-Aşağıdaki tıbbi belgenin DETAYLI klinik özetini yaz. Lab sonuçlarını, büyüme verilerini, \
-tedavi planını ve klinik seyri MUTLAKA dahil et. Kişisel verileri dahil etme:
+Aşağıdaki tıbbi belgenin DETAYLI klinik özetini yaz. \
+Lab sonuçlarını, büyüme verilerini, tedavi planını ve klinik seyri MUTLAKA dahil et. \
+Başlık ekleme. Kişisel veri (isim, tarih, yaş, kurum, adres) dahil etme. \
+Gerçek tarihleri "kontrol-1", "kontrol-2" gibi göreceli ifadelerle değiştir:
 
 ---
 {text}
 ---"""
 
 DETAILED_SUMMARIZE_SYSTEM_EN = """\
-You are a medical document analysis specialist. Write a DETAILED clinical summary of the given \
-medical document. Do NOT include personal data (names, IDs, addresses) — but MUST include:
+You are a medical document analysis specialist. Write a DETAILED clinical summary.
+
+PROHIBITED — do NOT include any of these:
+- Patient name, physician name, parent name, nurse name
+- National ID, protocol number, patient number
+- Date of birth, age, birth year
+- Address, phone, email
+- Hospital name, clinic name, institution name
+- Actual dates (use relative terms like "visit 1", "visit 2", "most recent" instead)
+
+MUST INCLUDE:
 - Laboratory results and values (TSH, fT4, fT3, HbA1c, IGF-1, etc.)
-- Progression of lab values over time (trends, improvements, deterioration)
+- Progression of lab values over time (trends) — label as "visit 1", "visit 2", not actual dates
 - Growth data (height, weight, BMI, percentiles, growth velocity)
 - Bone age and pubertal assessment
 - Treatment plan and medication doses
 - Diagnosis and differential diagnoses
 - Follow-up recommendations
-Write in English. Use markdown formatting (headings, lists, bold text)."""
+
+RULES:
+- Do NOT add a title. Start directly with clinical content.
+- Write in English. Use markdown formatting (headings, lists, bold text)."""
 
 DETAILED_SUMMARIZE_USER_EN = """\
-Write a DETAILED clinical summary of the following medical document. MUST include lab results, \
-growth data, treatment plan, and clinical progression. Do not include personal data:
+Write a DETAILED clinical summary of the following medical document. \
+MUST include lab results, growth data, treatment plan, and clinical progression. \
+Do NOT add a title. Do NOT include personal data (names, dates, ages, institutions, addresses). \
+Replace actual dates with "visit 1", "visit 2", etc.:
 
 ---
 {text}

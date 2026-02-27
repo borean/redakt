@@ -683,15 +683,55 @@ class Anonymizer(QObject):
             months += 12
         return max(0, years), max(0, months)
 
-    def _apply_age_conversion(self, entities: list) -> list:
+    # Patterns that indicate a birth date in Turkish and English medical documents
+    _BIRTH_CONTEXT_PATTERNS = (
+        "doğum tarihi", "dogum tarihi", "d.tarihi", "dtarihi",
+        "doğum:", "dogum:", "doğumlu", "dogumlu",
+        "birth date", "date of birth", "dob:", "dob ",
+        "born on", "born:",
+    )
+
+    def _find_birth_date_by_context(self, entities: list, document_text: str) -> tuple:
+        """Fallback: find a birth date by scanning document context around date entities.
+
+        Looks for patterns like 'Doğum Tarihi: 29.03.2012' near entity text.
+        Returns (parsed_date, entity) or (None, None).
+        """
+        if not document_text:
+            return None, None
+
+        text_lower = document_text.lower()
+        for e in entities:
+            if e.category != "date":
+                continue
+            # Find where this date appears in the document
+            pos = text_lower.find(e.original.lower())
+            if pos < 0:
+                continue
+            # Check 60 chars before the date for birth-related keywords
+            context_start = max(0, pos - 60)
+            context = text_lower[context_start:pos]
+            for pattern in self._BIRTH_CONTEXT_PATTERNS:
+                if pattern in context:
+                    parsed = self._parse_date(e.original)
+                    if parsed:
+                        return parsed, e
+        return None, None
+
+    def _apply_age_conversion(self, entities: list, document_text: str = "") -> list:
         """Convert date entities to age-relative format when a birth date is found.
 
         - Birth date stays fully redacted ([TARIH_1] / [DATE_1])
         - Other dates become "X yaş Y ay" (TR) or "at age X.Y yrs" (EN)
+
+        Uses three strategies to find the birth date:
+        1. Entity subcategory (LLM classified it as date_of_birth)
+        2. Document context (text before the date mentions "doğum tarihi" etc.)
+        3. Earliest date heuristic (for pediatric files, the earliest date is often DOB)
         """
         from qwenkk.constants import Language
 
-        # Find the first parseable birth date entity
+        # Strategy 1: Find by subcategory
         birth_date = None
         birth_entity = None
         for e in entities:
@@ -701,6 +741,33 @@ class Anonymizer(QObject):
                     birth_date = parsed
                     birth_entity = e
                     break
+
+        # Strategy 2: Find by document context
+        if not birth_date:
+            birth_date, birth_entity = self._find_birth_date_by_context(
+                entities, document_text
+            )
+
+        # Strategy 3: Earliest date heuristic — if there are 3+ dates,
+        # the earliest is likely a birth date (common in pediatric files)
+        if not birth_date:
+            date_candidates = []
+            for e in entities:
+                if e.category != "date":
+                    continue
+                parsed = self._parse_date(e.original)
+                if parsed:
+                    date_candidates.append((parsed, e))
+            if len(date_candidates) >= 3:
+                date_candidates.sort(key=lambda x: x[0])
+                earliest = date_candidates[0]
+                # Only use if it's significantly earlier than the next date
+                # (at least 1 year gap suggests it's a birth date, not a visit date)
+                if len(date_candidates) > 1:
+                    from datetime import timedelta
+                    gap = date_candidates[1][0] - earliest[0]
+                    if gap > timedelta(days=365):
+                        birth_date, birth_entity = earliest
 
         if not birth_date:
             return entities  # no birth date found
