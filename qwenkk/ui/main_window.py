@@ -1257,12 +1257,20 @@ class MainWindow(QMainWindow):
         n_active = len({s.entity.original for s in active_spans})
         n_total = len(self._entities)
 
+        # Save scroll positions before setHtml() resets them
+        orig_scroll = self.original_view.verticalScrollBar().value()
+        redacted_scroll = self.redacted_view.verticalScrollBar().value()
+
         self.original_view.setHtml(
             render_highlighted_html(self._extracted_text, active_spans)
         )
         self.redacted_view.setHtml(
             render_redacted_html(self._extracted_text, active_spans)
         )
+
+        # Restore scroll positions
+        self.original_view.verticalScrollBar().setValue(orig_scroll)
+        self.redacted_view.verticalScrollBar().setValue(redacted_scroll)
         self.left_label.setText(
             f"DOCUMENT TEXT  ({n_active}/{n_total} PII HIGHLIGHTED)"
         )

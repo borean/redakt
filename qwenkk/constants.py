@@ -12,7 +12,7 @@ OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_MODEL = "qwen3:30b-a3b"
 VISION_MODEL = "qwen3-vl:8b"
 Q8_MODEL = "qwen3:30b-a3b-q8_0"
-DEV_MODEL_BF16 = "qwen3:30b-a3b-bf16"
+DEV_MODEL_FP16 = "qwen3:30b-a3b-fp16"
 
 # llama.cpp backend (serves Qwen3.5 via llama-server)
 LLAMACPP_HOST = "http://localhost:8081"

@@ -34,31 +34,31 @@ def get_model_recommendations(info: dict) -> list[dict]:
 
     models = []
 
-    # Q4_K_M quantized (~20GB)
+    # Q4_K_M quantized (~21GB)
     models.append({
         "name": "Qwen3.5 35B-A3B Q4_K_M",
         "param": "35B (3B active)",
-        "size_gb": 20,
-        "compatible": available_mem >= 22,
-        "note": _compat_note(available_mem, 22, apple),
-        "tag": "RECOMMENDED" if available_mem >= 22 else "TOO LARGE",
+        "size_gb": 21,
+        "compatible": available_mem >= 24,
+        "note": _compat_note(available_mem, 24, apple),
+        "tag": "RECOMMENDED" if available_mem >= 24 else "TOO LARGE",
     })
 
-    # Q8_0 quantized (~36GB)
+    # Q8_0 quantized (~37GB)
     models.append({
         "name": "Qwen3.5 35B-A3B Q8_0",
         "param": "35B (3B active)",
-        "size_gb": 36,
-        "compatible": available_mem >= 40,
-        "note": _compat_note(available_mem, 40, apple),
-        "tag": "HIGH QUALITY" if available_mem >= 40 else "REQUIRES 48GB+",
+        "size_gb": 37,
+        "compatible": available_mem >= 42,
+        "note": _compat_note(available_mem, 42, apple),
+        "tag": "HIGH QUALITY" if available_mem >= 42 else "REQUIRES 48GB+",
     })
 
-    # BF16 full precision (~70GB)
+    # BF16 full precision (~69GB)
     models.append({
         "name": "Qwen3.5 35B-A3B BF16",
         "param": "35B (3B active)",
-        "size_gb": 70,
+        "size_gb": 69,
         "compatible": available_mem >= 80,
         "note": _compat_note(available_mem, 80, apple),
         "tag": "FULL PRECISION" if available_mem >= 80 else "REQUIRES 96GB+",

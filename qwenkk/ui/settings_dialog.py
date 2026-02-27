@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
 from qwenkk.constants import (
     Backend,
     DEFAULT_MODEL,
-    DEV_MODEL_BF16,
+    DEV_MODEL_FP16,
     LLAMACPP_HOST,
     LLAMACPP_MODEL,
     OLLAMA_HOST,
@@ -151,22 +151,22 @@ class SettingsDialog(QDialog):
         # Define quantization tiers: (label, tag, size, compat, compat_tag, description)
         model_tiers = [
             (
-                "Qwen3 30B-A3B \u2014 Q4_K_M  (~18GB)",
+                "Qwen3 30B-A3B \u2014 Q4_K_M  (~19 GB)",
                 DEFAULT_MODEL,
                 q4_compat,
                 "RECOMMENDED" if q4_compat else "NEEDS MORE MEMORY",
                 "Balanced speed and quality. Recommended for most systems.",
             ),
             (
-                "Qwen3 30B-A3B \u2014 Q8_0  (~36GB)",
+                "Qwen3 30B-A3B \u2014 Q8_0  (~33 GB)",
                 Q8_MODEL,
                 q8_compat,
                 "HIGH QUALITY" if q8_compat else "NEEDS MORE MEMORY",
                 "Higher quality output, needs more memory.",
             ),
             (
-                "Qwen3 30B-A3B \u2014 BF16  (~70GB)",
-                DEV_MODEL_BF16,
+                "Qwen3 30B-A3B \u2014 FP16  (~61 GB)",
+                DEV_MODEL_FP16,
                 bf16_compat,
                 "FULL PRECISION" if bf16_compat else "NEEDS MORE MEMORY",
                 "Full precision. Maximum quality, requires high-end hardware.",
@@ -246,7 +246,7 @@ class SettingsDialog(QDialog):
             current_gguf = self.llamacpp_manager.gguf_path
             for idx, info in enumerate(available_ggufs):
                 radio_text = (
-                    f"{info.name}  ({info.size_gb:.1f} GB)  [{info.source}]"
+                    f"{info.name}  ({info.size_gb:.1f} GB)"
                 )
                 radio = QRadioButton(radio_text)
                 radio.setStyleSheet(

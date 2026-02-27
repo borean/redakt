@@ -105,7 +105,7 @@ class GGUFInfo:
     name: str  # Display name, e.g. "Qwen3.5 35B-A3B Q4_K_M"
     quant: str  # Quantization type, e.g. "Q4_K_M", "Q8_0"
     size_gb: float  # File size in GB
-    source: str  # "ollama" or "local"
+    source: str  # "auto-discovered" or "local"
 
 
 def _resolve_ollama_manifest(manifest_path: Path) -> Path | None:
@@ -174,7 +174,7 @@ def find_all_ggufs() -> list[GGUFInfo]:
                         name=f"Qwen3.5 35B-A3B {quant_name}",
                         quant=quant_name,
                         size_gb=round(size_gb, 1),
-                        source="ollama",
+                        source="auto-discovered",
                     )
                 )
                 seen_paths.add(str(blob_path))
