@@ -50,7 +50,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.llamacpp_manager = llamacpp_manager
         self.setWindowTitle("DeIdentify Config")
-        self.setMinimumWidth(520)
+        self.setMinimumWidth(620)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
@@ -79,6 +79,7 @@ class SettingsDialog(QDialog):
             detail_parts.append(f"OS: {self._sys_info['os']} {self._sys_info.get('os_version', '')}")
         detail_label = QLabel(" | ".join(detail_parts))
         detail_label.setStyleSheet(f"color: {_TEXT_DIM};")
+        detail_label.setWordWrap(True)
         sys_form.addRow("", detail_label)
 
         # Data privacy notice
@@ -115,6 +116,7 @@ class SettingsDialog(QDialog):
 
         self.backend_status = QLabel("Checking...")
         self.backend_status.setStyleSheet(f"color: {_TEXT_DIM};")
+        self.backend_status.setWordWrap(True)
         backend_form.addRow("Status:", self.backend_status)
 
         layout.addWidget(backend_group)

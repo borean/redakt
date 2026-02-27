@@ -216,6 +216,7 @@ class MainWindow(QMainWindow):
             f"padding: 2px 0; font-family: {_MONO};"
         )
         self._workflow_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._workflow_hint.setWordWrap(True)
         root.addWidget(self._workflow_hint)
 
         # ── Main vertical splitter ──
@@ -267,6 +268,7 @@ class MainWindow(QMainWindow):
         text_splitter.addWidget(right)
 
         text_splitter.setSizes([500, 500])
+        text_splitter.setChildrenCollapsible(False)
         self.main_splitter.addWidget(text_splitter)
 
         # ── Middle section: Entity panel (chips + table) ──
@@ -329,12 +331,12 @@ class MainWindow(QMainWindow):
         hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         hdr.resizeSection(0, 36)
         hdr.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
-        hdr.resizeSection(1, 32)
+        hdr.resizeSection(1, 40)
         hdr.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         hdr.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
-        hdr.resizeSection(5, 50)
+        hdr.resizeSection(5, 60)
         self.entity_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
@@ -405,7 +407,7 @@ class MainWindow(QMainWindow):
         self.summary_format_combo = QComboBox()
         for fmt in SUMMARY_EXPORT_FORMATS:
             self.summary_format_combo.addItem(fmt)
-        self.summary_format_combo.setFixedWidth(75)
+        self.summary_format_combo.setFixedWidth(100)
         self.summary_format_combo.setFixedHeight(22)
         self.summary_format_combo.setVisible(False)
         chat_header.addWidget(self.summary_format_combo)
@@ -457,7 +459,7 @@ class MainWindow(QMainWindow):
         chat_input_row.addWidget(self.chat_input)
 
         self.send_btn = QPushButton("SEND")
-        self.send_btn.setFixedSize(70, 30)
+        self.send_btn.setMinimumSize(70, 30)
         self.send_btn.setStyleSheet(
             f"QPushButton {{ background: {_BG_LIGHTER}; color: {_TEXT}; "
             f"border: none; border-radius: 2px; font-size: 10px; "
@@ -474,13 +476,14 @@ class MainWindow(QMainWindow):
         self.main_splitter.addWidget(self.chat_panel)
 
         self.main_splitter.setSizes([400, 180, 200])
+        self.main_splitter.setChildrenCollapsible(False)
         root.addWidget(self.main_splitter, stretch=1)
 
         # ── Progress bar (hidden by default) ──
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.setVisible(False)
-        self.progress_bar.setFixedHeight(3)
+        self.progress_bar.setFixedHeight(4)
         self.progress_bar.setTextVisible(False)
         root.addWidget(self.progress_bar)
 
@@ -552,7 +555,7 @@ class MainWindow(QMainWindow):
         self.format_combo = QComboBox()
         for fmt in EXPORT_FORMATS:
             self.format_combo.addItem(fmt)
-        self.format_combo.setFixedWidth(90)
+        self.format_combo.setFixedWidth(110)
         controls.addWidget(self.format_combo)
 
         self.export_btn = QPushButton("EXPORT REDACTED")

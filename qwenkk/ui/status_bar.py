@@ -46,13 +46,13 @@ class OllamaStatusBar(QWidget):
 
         self._cpu_bar = QProgressBar()
         self._cpu_bar.setRange(0, 100)
-        self._cpu_bar.setFixedSize(50, 6)
+        self._cpu_bar.setFixedSize(60, 10)
         self._cpu_bar.setTextVisible(False)
         self._cpu_bar.setStyleSheet(f"""
             QProgressBar {{
                 background: {_BG_MID};
-                border: none;
-                border-radius: 2px;
+                border: 1px solid {_BORDER};
+                border-radius: 3px;
             }}
             QProgressBar::chunk {{
                 background: {_TEXT_DIM};
@@ -70,13 +70,13 @@ class OllamaStatusBar(QWidget):
 
         self._ram_bar = QProgressBar()
         self._ram_bar.setRange(0, 100)
-        self._ram_bar.setFixedSize(50, 6)
+        self._ram_bar.setFixedSize(60, 10)
         self._ram_bar.setTextVisible(False)
         self._ram_bar.setStyleSheet(f"""
             QProgressBar {{
                 background: {_BG_MID};
-                border: none;
-                border-radius: 2px;
+                border: 1px solid {_BORDER};
+                border-radius: 3px;
             }}
             QProgressBar::chunk {{
                 background: {_TEXT_DIM};
@@ -132,8 +132,8 @@ class OllamaStatusBar(QWidget):
             bar_style = f"""
                 QProgressBar {{
                     background: {_BG_MID};
-                    border: none;
-                    border-radius: 2px;
+                    border: 1px solid {_ACCENT}40;
+                    border-radius: 3px;
                 }}
                 QProgressBar::chunk {{
                     background: {_ACCENT};
@@ -153,8 +153,8 @@ class OllamaStatusBar(QWidget):
             bar_style = f"""
                 QProgressBar {{
                     background: {_BG_MID};
-                    border: none;
-                    border-radius: 2px;
+                    border: 1px solid {_BORDER};
+                    border-radius: 3px;
                 }}
                 QProgressBar::chunk {{
                     background: {_TEXT_DIM};
