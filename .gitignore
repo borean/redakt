@@ -23,8 +23,8 @@ env/
 Thumbs.db
 
 # PyInstaller
-*.spec
 *.manifest
+!Redakt.spec
 
 # Testing
 .pytest_cache/

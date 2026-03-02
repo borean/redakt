@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "=== Building QwenKK / DeIdentify for macOS ==="
+echo "=== Building Redakt for macOS ==="
 
 cd "$PROJECT_DIR"
 
@@ -18,37 +18,25 @@ source .venv/bin/activate
 pip install -e ".[dev]" --quiet
 
 echo "Building .app bundle with PyInstaller..."
-pyinstaller \
-    --name "DeIdentify" \
-    --windowed \
-    --onedir \
-    --icon assets/icon.icns \
-    --add-data "assets:assets" \
-    --hidden-import "qwenkk" \
-    --hidden-import "qwenkk.core" \
-    --hidden-import "qwenkk.parsers" \
-    --hidden-import "qwenkk.ui" \
-    --noconfirm \
-    --clean \
-    qwenkk/__main__.py
+pyinstaller Redakt.spec --noconfirm --clean
 
 echo ""
 echo "=== Build complete ==="
-echo "App: dist/DeIdentify.app"
+echo "App: dist/Redakt.app"
 echo ""
 
 # Create DMG if create-dmg is available
 if command -v create-dmg &> /dev/null; then
     echo "Creating DMG..."
     create-dmg \
-        --volname "DeIdentify" \
+        --volname "Redakt" \
         --window-pos 200 120 \
         --window-size 600 400 \
-        --icon "DeIdentify.app" 150 185 \
+        --icon "Redakt.app" 150 185 \
         --app-drop-link 450 185 \
-        "dist/DeIdentify.dmg" \
-        "dist/DeIdentify.app"
-    echo "DMG: dist/DeIdentify.dmg"
+        "dist/Redakt.dmg" \
+        "dist/Redakt.app"
+    echo "DMG: dist/Redakt.dmg"
 else
     echo "Tip: Install create-dmg for DMG packaging:"
     echo "  brew install create-dmg"

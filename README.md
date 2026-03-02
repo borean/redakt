@@ -1,25 +1,49 @@
-# DeIdentify (QwenKK)
+# Redakt
 
-Local medical document anonymization powered by Qwen LLM.
+Local medical document de-identification powered by Qwen LLM.
 All processing happens on your machine -- no data leaves your computer.
-
-**QwenKK** = Qwen + KVKK (Turkey's data protection law)
 
 ## How It Works
 
 1. Download the app
 2. Double-click to open
-3. The app handles everything: installs Ollama, downloads the AI model
-4. Drag your files in, click **Anonymize All**
+3. The app handles everything: downloads the AI model automatically
+4. Drag your files in, click **Scan for PII**
 5. Get back clean files with all patient data replaced
 
 ## Download
 
 | Platform | Download |
 |----------|----------|
-| macOS | [DeIdentify.dmg](#) |
-| Windows | [DeIdentify.exe](#) |
-| Linux | [DeIdentify](#) |
+| macOS | [Redakt.dmg](#) |
+| Windows | [Redakt.exe](#) |
+| Linux | [Redakt](#) |
+
+## REST API
+
+Run Redakt as a headless API server for hospital EMR integration:
+
+```bash
+redakt --serve --port 8080
+```
+
+```bash
+curl -X POST http://localhost:8080/api/redact \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "Ahmet Yilmaz, TC: 12345678901"}'
+```
+
+### npm Client
+
+```bash
+npm install redakt
+```
+
+```ts
+import { Redakt } from 'redakt';
+const client = new Redakt();
+const result = await client.redact("Ahmet Yilmaz, TC: 12345678901");
+```
 
 ## Supported File Types
 
@@ -32,37 +56,30 @@ All processing happens on your machine -- no data leaves your computer.
 
 | Data Type | Example | Replaced With |
 |-----------|---------|---------------|
-| Patient names | Ahmet Yilmaz | [AD_1] |
-| Dates | 15.03.2020 | [TARIH_1] |
-| ID numbers | TC 12345678901 | [KIMLIK_1] |
-| Addresses | Kadikoy, Istanbul | [ADRES_1] |
-| Phone numbers | 0532 123 4567 | [TELEFON_1] |
-| Institutions | Cerrahpasa Tip | [KURUM_1] |
+| Patient names | Ahmet Yilmaz | [NAME_1] |
+| Dates | 15.03.2020 | [DATE_1] |
+| ID numbers | TC 12345678901 | [ID_1] |
+| Addresses | Kadikoy, Istanbul | [ADDRESS_1] |
+| Phone numbers | 0532 123 4567 | [PHONE_1] |
+| Institutions | Cerrahpasa Tip | [INSTITUTION_1] |
 
 Medical terms, lab values, and diagnoses are **not** touched.
 
 ## For Developers
 
 ```bash
-git clone https://github.com/yourusername/QwenKK.git
-cd QwenKK
+git clone https://github.com/borean/redakt.git
+cd redakt
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-python -m qwenkk
+python -m redakt
 ```
 
 ### Build the Desktop App
 
 ```bash
-# macOS
-./scripts/build_macos.sh
-
-# Windows
-scripts\build_windows.bat
-
-# Linux
-./scripts/build_linux.sh
+pyinstaller Redakt.spec
 ```
 
 ## Requirements
