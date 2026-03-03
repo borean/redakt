@@ -264,6 +264,262 @@
             color: #a8a29e;
         }
 
+        /* ── Demo section ── */
+        .demo-section {
+            padding: 6rem 2rem;
+            background: var(--bg);
+        }
+
+        .demo-section .section-label {
+            text-align: center;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .demo-section h2 {
+            text-align: center;
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 3rem;
+        }
+
+        .demo-window {
+            max-width: 820px;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.1);
+        }
+
+        .demo-titlebar {
+            background: #252525;
+            padding: 0.65rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .demo-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .demo-dot.red { background: #ef4444; }
+        .demo-dot.yellow { background: #f59e0b; }
+        .demo-dot.green { background: #22c55e; }
+
+        .demo-titlebar .demo-title-text {
+            flex: 1;
+            text-align: center;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #e78a4e;
+            letter-spacing: 0.15em;
+        }
+
+        .demo-titlebar .demo-subtitle {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.55rem;
+            color: #808080;
+            letter-spacing: 0.1em;
+        }
+
+        .demo-body {
+            background: #1a1a1a;
+            min-height: 340px;
+            position: relative;
+        }
+
+        /* Toolbar */
+        .demo-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #333;
+        }
+
+        .demo-btn {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.65rem;
+            letter-spacing: 0.05em;
+            padding: 0.35rem 0.9rem;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background: #252525;
+            color: #808080;
+            cursor: default;
+            transition: all 0.3s ease;
+        }
+
+        .demo-btn.scan-btn {
+            background: #e78a4e;
+            color: #111;
+            border-color: #e78a4e;
+            font-weight: 700;
+        }
+
+        .demo-btn.scan-btn.scanning {
+            background: #c47a42;
+            border-color: #c47a42;
+        }
+
+        .demo-btn.export-btn.ready {
+            border-color: #e78a4e;
+            color: #e78a4e;
+        }
+
+        .demo-chips {
+            display: flex;
+            gap: 0.35rem;
+            margin-left: auto;
+        }
+
+        .demo-chip {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding: 0.15rem 0.45rem;
+            border-radius: 2px;
+            border: 1px solid transparent;
+            opacity: 0;
+            transform: translateY(3px);
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .demo-chip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .demo-chip.name { background: #d46b6b55; border-color: #d46b6b88; color: #d46b6b; }
+        .demo-chip.date { background: #d4884e55; border-color: #d4884e88; color: #d4884e; }
+        .demo-chip.id { background: #d4a04e55; border-color: #d4a04e88; color: #d4a04e; }
+        .demo-chip.location { background: #6bbd6b55; border-color: #6bbd6b88; color: #6bbd6b; }
+        .demo-chip.age { background: #c47a8e55; border-color: #c47a8e88; color: #c47a8e; }
+
+        /* Split panes */
+        .demo-panes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .demo-pane {
+            padding: 1rem 1.25rem;
+            overflow: hidden;
+        }
+
+        .demo-pane + .demo-pane {
+            border-left: 2px solid #252525;
+        }
+
+        .demo-pane-label {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.55rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #555;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .demo-text {
+            font-size: 0.72rem;
+            line-height: 1.85;
+            color: #d4d4d4;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .demo-text .pii {
+            transition: all 0.4s ease;
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+
+        .demo-text .pii.highlight {
+            font-weight: 600;
+        }
+
+        .demo-text .pii.highlight.name { background: #d46b6b22; color: #d46b6b; border: 1px solid #d46b6b66; }
+        .demo-text .pii.highlight.date { background: #d4884e22; color: #d4884e; border: 1px solid #d4884e66; }
+        .demo-text .pii.highlight.id { background: #d4a04e22; color: #d4a04e; border: 1px solid #d4a04e66; }
+        .demo-text .pii.highlight.location { background: #6bbd6b22; color: #6bbd6b; border: 1px solid #6bbd6b66; }
+
+        .demo-text .pii.redacted {
+            background: #808080;
+            color: #808080;
+            border-radius: 1px;
+            letter-spacing: -0.5px;
+            user-select: none;
+            font-size: 0.65rem;
+        }
+
+        /* Status bar */
+        .demo-status {
+            padding: 0.45rem 1rem;
+            background: #111111;
+            border-top: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .demo-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6bbd6b;
+            transition: background 0.3s ease;
+        }
+
+        .demo-status-dot.processing {
+            background: #e78a4e;
+            animation: pulse-dot 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .demo-status-text {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.55rem;
+            color: #808080;
+            letter-spacing: 0.05em;
+            transition: color 0.3s ease;
+        }
+
+        .demo-status .local-badge {
+            margin-left: auto;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.5rem;
+            font-weight: 700;
+            color: #6bbd6b;
+            letter-spacing: 0.1em;
+            border: 1px solid #6bbd6b44;
+            border-radius: 2px;
+            padding: 1px 6px;
+        }
+
+        @media (max-width: 500px) {
+            .demo-panes { grid-template-columns: 1fr; }
+            .demo-pane + .demo-pane { border-left: none; border-top: 2px solid #252525; }
+            .demo-chips { display: none; }
+            .demo-text { font-size: 0.6rem; }
+        }
+
         /* ── Article (manifesto) ── */
         article {
             max-width: 680px;
@@ -521,6 +777,15 @@
 
             .nav-links a.hide-mobile { display: none; }
         }
+
+        /* Fix Turkish uppercase İ on brand names */
+        html[lang="tr"] .hero-meta,
+        html[lang="tr"] .hero-badge,
+        html[lang="tr"] .feature h3,
+        html[lang="tr"] .download-note,
+        html[lang="tr"] .local-badge {
+            text-transform: none;
+        }
     </style>
 </head>
 <body>
@@ -568,6 +833,63 @@
         <div class="feature">
             <h3 data-i18n="feat_age_title">Age conversion</h3>
             <p data-i18n="feat_age_desc">Dates can be converted to patient age at time of visit. Preserves temporal information while removing identifiable dates.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ── Demo ── -->
+<section class="demo-section" id="demo">
+    <p class="section-label" data-i18n="demo_label">See it in action</p>
+    <h2 data-i18n="demo_title">Drop a document. Click scan. Done.</h2>
+
+    <div class="demo-window">
+        <div class="demo-titlebar">
+            <div class="demo-dot red"></div>
+            <div class="demo-dot yellow"></div>
+            <div class="demo-dot green"></div>
+            <span class="demo-title-text">REDAKT</span>
+            <span class="demo-subtitle">LOCAL DE-IDENTIFICATION</span>
+        </div>
+        <div class="demo-body">
+            <div class="demo-toolbar">
+                <span class="demo-btn scan-btn" id="demo-scan-btn" data-i18n="demo_scan">SCAN FOR PII</span>
+                <span class="demo-btn export-btn" id="demo-export-btn" data-i18n="demo_export">EXPORT</span>
+                <div class="demo-chips">
+                    <span class="demo-chip name" id="chip-name">NAME</span>
+                    <span class="demo-chip date" id="chip-date">DATE</span>
+                    <span class="demo-chip id" id="chip-id">ID</span>
+                    <span class="demo-chip location" id="chip-loc">LOCATION</span>
+                    <span class="demo-chip age" id="chip-age">AGE</span>
+                </div>
+            </div>
+            <div class="demo-panes">
+                <div class="demo-pane">
+                    <div class="demo-pane-label" id="demo-left-label">Document text</div>
+                    <div class="demo-text" id="demo-text"><strong style="color:#e78a4e">Pediatrik Endokrin Poliklinik</strong>
+
+Hasta: <span class="pii name">Elif Demir</span>
+DT: <span class="pii date">08.04.2016</span>
+TC: <span class="pii id">98765432109</span>
+
+<span class="pii date">12.09.2023</span> Boy: 118 cm
+A&#287;&#305;rl&#305;k: 22.4 kg, BMI: 16.1
+<span class="pii date">15.03.2024</span> Boy: 121 cm
+A&#287;&#305;rl&#305;k: 23.8 kg, BMI: 16.3
+B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
+
+<span class="pii name">Do&#231;. Dr. Ay&#351;e Kara</span>
+<span class="pii location">Cerrahpa&#351;a T&#305;p Fak.</span></div>
+                </div>
+                <div class="demo-pane">
+                    <div class="demo-pane-label" id="demo-right-label">Redacted preview</div>
+                    <div class="demo-text" id="demo-redacted"><span style="color:#555">Click &ldquo;Scan&rdquo; to preview redacted output.</span></div>
+                </div>
+            </div>
+            <div class="demo-status">
+                <div class="demo-status-dot" id="demo-status-dot"></div>
+                <span class="demo-status-text" id="demo-status-text">READY</span>
+                <span class="local-badge">100% LOCAL</span>
+            </div>
         </div>
     </div>
 </section>
@@ -774,19 +1096,19 @@
             nav_download: '\u0130ndir',
 
             // Hero
-            hero_badge: 'A\u00e7\u0131k kaynak \u00b7 Yerel \u00e7al\u0131\u015f\u0131r \u00b7 Bulut yok',
+            hero_badge: 'A\u00c7IK KAYNAK \u00b7 YEREL \u00c7ALI\u015eIR \u00b7 BULUT YOK',
             hero_title: 'T\u0131bbi belgelerde kimlik gizleme. <span>Yerel.</span>',
             hero_subtitle: 'PDF veya DOCX y\u00fckleyin. Redakt, yerel bir yapay zeka modeli kullanarak ki\u015fisel verileri bulur ve karart\u0131r. Hi\u00e7bir \u015fey bilgisayar\u0131n\u0131zdan \u00e7\u0131kmaz. Asla.',
             hero_download: "Redakt'\u0131 \u0130ndir",
             hero_github: "GitHub'da G\u00f6r\u00fcnt\u00fcle",
-            hero_meta: 'macOS \u00b7 Windows \u00b7 Linux \u00b7 \u00dccretsiz ve a\u00e7\u0131k kaynak',
+            hero_meta: 'MACOS \u00b7 WINDOWS \u00b7 LINUX \u00b7 \u00dcCRETSIZ VE A\u00c7IK KAYNAK',
 
             // Features
-            feat_local_title: '%100 Yerel',
+            feat_local_title: '%100 YEREL',
             feat_local_desc: 'T\u00fcm i\u015flemler bilgisayar\u0131n\u0131zda \u00e7al\u0131\u015f\u0131r. API anahtar\u0131 yok, bulut yok, veri transferi yok. Tasar\u0131mdan KVKK/HIPAA/GDPR uyumlu.',
-            feat_click_title: 'Tek t\u0131klama',
+            feat_click_title: 'TEK TIKLAMA',
             feat_click_desc: 'Dosya a\u00e7\u0131n. Tara\u2019ya t\u0131klay\u0131n. D\u0131\u015fa aktar\u0131n. Terminal yok, kodlama yok, yap\u0131land\u0131rma yok. Klinisyenler ve ara\u015ft\u0131rmac\u0131lar i\u00e7in haz\u0131r.',
-            feat_age_title: 'Ya\u015f d\u00f6n\u00fc\u015f\u00fcm\u00fc',
+            feat_age_title: 'YA\u015e D\u00d6N\u00dc\u015e\u00dcM\u00dc',
             feat_age_desc: 'Tarihler, ziyaret an\u0131ndaki hasta ya\u015f\u0131na d\u00f6n\u00fc\u015ft\u00fcr\u00fclebilir. Kimlik bilgisi olan tarihleri kald\u0131r\u0131rken zamansal bilgiyi korur.',
 
             // Article header
@@ -814,7 +1136,7 @@
 
             // Section 4 - Key insight
             sec4_title: 'Temel i\u00e7g\u00f6r\u00fc',
-            sec4_highlight: "LLM'den t\u0131p yapmas\u0131n\u0131 istemiyorsunuz. Ondan iyi oldu\u011fu \u015feyi yapmas\u0131n\u0131 istiyorsunuz \u2014 kod yazmak, veri ta\u015f\u0131mak, metin aramak \u2014 klinik muhakemenize hizmet etmek \u00fczere.",
+            sec4_highlight: "LLM'e t\u0131bbi karar verdirmiyorsunuz. Onu iyi oldu\u011fu i\u015fe ko\u015fuyorsunuz \u2014 kod yazmak, veri ta\u015f\u0131mak, metin aramak \u2014 klinik muhakemenize hizmet etmesi i\u00e7in.",
             sec4_p1: "LLM'ler deterministik de\u011fildir. Kimse \u00f6yle olduklar\u0131n\u0131 iddia etmiyor. Ama yazd\u0131klar\u0131 kod deterministiktir. Cox regresyonu \u00e7al\u0131\u015ft\u0131ran bir Python beti\u011fi her seferinde ayn\u0131 sonucu verir. LLM mimard\u0131r. Makine hesap makinesidir. Bilim insan\u0131 sizsiniz.",
             sec4_p2: 'Devasa bir veri setinin her h\u00fccresine elle veri girmek ne verimli ne de g\u00fcvenlidir. \u0130nsanlar hata yapmaya e\u011filmlidir. Test edilmi\u015f, deterministik sistemler de\u011fildir. Ve LLM ajanlar\u0131 bu sistemleri \u2014 sizin \u00f6zel ara\u015ft\u0131rma ihtiya\u00e7lar\u0131n\u0131za \u00f6zelle\u015ftirilmi\u015f olarak \u2014 kurabilir.',
             sec4_principles: '<strong>Temel ilkeler:</strong><br>Klinisyenler d\u00fc\u015f\u00fcn\u00fcr \u2014 makineler tekrarlayan i\u015fleri yapar.<br>\u00d6nce gizlilik: yerel model, bulut yok, istisna yok.<br>Her otomatik ad\u0131m denetlenebilir ve geri al\u0131nabilir olmal\u0131.<br>Ara\u00e7lar sizin i\u015f ak\u0131\u015f\u0131n\u0131za hizmet etmeli, m\u00fchendislerin varsay\u0131mlar\u0131na de\u011fil.',
@@ -868,6 +1190,12 @@
             cta_text: 'Anonimle\u015ftirme olmadan a\u015fa\u011f\u0131 ak\u0131\u015fta hi\u00e7bir \u015fey \u00e7al\u0131\u015fmaz. Biz onu in\u015fa ettik.',
             cta_github: "Kaynak kodu GitHub'da g\u00f6r\u00fcnt\u00fcle",
             cta_download: "Redakt'\u0131 \u0130ndir",
+
+            // Demo
+            demo_label: 'Nas\u0131l \u00e7al\u0131\u015f\u0131r',
+            demo_title: 'Belge y\u00fckleyin. Taray\u0131n. Bitti.',
+            demo_scan: 'Tara',
+            demo_export: 'D\u0131\u015fa Aktar',
 
             // Footer
             footer_text: '&copy; 2026 &middot; Bir klinisyen taraf\u0131ndan, klinisyenler i\u00e7in in\u015fa edildi. &middot; <a href="https://github.com/borean/redakt" target="_blank">GitHub</a>'
@@ -941,6 +1269,149 @@
             if (target) target.scrollIntoView({ behavior: 'smooth' });
         });
     });
+
+    // ── Demo animation ──
+    (function() {
+        const piiEls = document.querySelectorAll('#demo-text .pii');
+        const redactedPane = document.getElementById('demo-redacted');
+        const leftLabel = document.getElementById('demo-left-label');
+        const rightLabel = document.getElementById('demo-right-label');
+        const chips = {
+            name: document.getElementById('chip-name'),
+            date: document.getElementById('chip-date'),
+            id: document.getElementById('chip-id'),
+            location: document.getElementById('chip-loc'),
+            age: document.getElementById('chip-age')
+        };
+        const scanBtn = document.getElementById('demo-scan-btn');
+        const exportBtn = document.getElementById('demo-export-btn');
+        const statusDot = document.getElementById('demo-status-dot');
+        const statusText = document.getElementById('demo-status-text');
+
+        // Store original text content of the left pane to build redacted version
+        const origHTML = document.getElementById('demo-text').innerHTML;
+        let running = false;
+        let observer;
+
+        function makeBlocks(text) {
+            return '\u2588'.repeat(Math.max(text.length, 3));
+        }
+
+        // Age conversion: birth date 08.04.2016
+        const birthDate = new Date(2016, 3, 8);
+        const ageMap = {
+            '12.09.2023': '7.4 yrs',
+            '15.03.2024': '7.9 yrs'
+        };
+
+        function buildRedactedHTML() {
+            const el = document.createElement('div');
+            el.innerHTML = origHTML;
+            el.querySelectorAll('.pii').forEach(p => {
+                const type = Array.from(p.classList).find(c => ['name','date','id','location'].includes(c));
+                const text = p.textContent.trim();
+                if (type === 'date' && ageMap[text]) {
+                    // Age conversion for visit dates
+                    p.outerHTML = '<span style="color:#d4884e;font-weight:600">at age ' + ageMap[text] + '</span>';
+                } else if (type === 'date') {
+                    // Birth date — fully redacted
+                    p.outerHTML = '<span style="background:#808080;color:#808080;border-radius:1px;letter-spacing:-0.5px;font-size:0.65rem">' + makeBlocks(text) + '</span>';
+                } else {
+                    const blocks = makeBlocks(text);
+                    p.outerHTML = '<span style="background:#808080;color:#808080;border-radius:1px;letter-spacing:-0.5px;font-size:0.65rem">' + blocks + '</span>';
+                }
+            });
+            return el.innerHTML;
+        }
+
+        function reset() {
+            piiEls.forEach(el => {
+                el.className = 'pii ' + Array.from(el.classList).find(c => ['name','date','id','location'].includes(c));
+            });
+            Object.values(chips).forEach(c => c.classList.remove('visible'));
+            scanBtn.classList.remove('scanning');
+            const isTR = document.documentElement.lang === 'tr';
+            scanBtn.textContent = isTR ? 'PII TARA' : 'SCAN FOR PII';
+            exportBtn.classList.remove('ready');
+            exportBtn.textContent = isTR ? 'DI\u015eA AKTAR' : 'EXPORT';
+            statusDot.classList.remove('processing');
+            statusText.textContent = 'READY';
+            statusText.style.color = '';
+            leftLabel.textContent = isTR ? 'Belge metni' : 'Document text';
+            rightLabel.textContent = isTR ? 'Karart\u0131lm\u0131\u015f \u00f6nizleme' : 'Redacted preview';
+            redactedPane.innerHTML = '<span style="color:#555">' + (isTR ? 'Karart\u0131lm\u0131\u015f \u00f6nizleme i\u00e7in \u201cTara\u201d ya bas\u0131n.' : 'Click \u201cScan\u201d to preview redacted output.') + '</span>';
+        }
+
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        async function runDemo() {
+            if (running) return;
+            running = true;
+
+            while (running) {
+                reset();
+                await sleep(1800);
+
+                const isTR = document.documentElement.lang === 'tr';
+
+                // Start scanning
+                scanBtn.classList.add('scanning');
+                scanBtn.textContent = isTR ? 'TARANIYOR...' : 'SCANNING...';
+                statusDot.classList.add('processing');
+                statusText.textContent = isTR ? 'YEREL OLARAK \u0130\u015eLEN\u0130YOR...' : 'PROCESSING LOCALLY...';
+                statusText.style.color = '#e78a4e';
+                await sleep(700);
+
+                // Highlight PII one by one
+                const revealedTypes = new Set();
+                for (const el of piiEls) {
+                    if (!running) return;
+                    const type = Array.from(el.classList).find(c => ['name','date','id','location'].includes(c));
+                    el.classList.add('highlight');
+
+                    if (type && chips[type] && !revealedTypes.has(type)) {
+                        chips[type].classList.add('visible');
+                        revealedTypes.add(type);
+                    }
+                    await sleep(400);
+                }
+
+                // Scan complete — update left label with count
+                scanBtn.classList.remove('scanning');
+                scanBtn.textContent = isTR ? 'PII TARA' : 'SCAN FOR PII';
+                statusDot.classList.remove('processing');
+                const count = piiEls.length;
+                leftLabel.textContent = (isTR ? 'Belge metni' : 'Document text') + ' (' + count + ' PII)';
+                statusText.textContent = count + (isTR ? ' ki\u015fisel veri bulundu' : ' PII entities found');
+                statusText.style.color = '#e78a4e';
+                await sleep(2200);
+
+                // Redact — show redacted version in right pane with age conversion
+                if (!running) return;
+                redactedPane.innerHTML = buildRedactedHTML();
+                chips.age.classList.add('visible');
+                rightLabel.textContent = (isTR ? 'Karart\u0131lm\u0131\u015f \u00f6nizleme' : 'Redacted preview') + ' (' + count + '/' + count + ')';
+                exportBtn.classList.add('ready');
+                statusText.textContent = isTR ? 'KARARTMA TAMAMLANDI' : 'REDACTION COMPLETE';
+                statusText.style.color = '#6bbd6b';
+                await sleep(5000);
+            }
+        }
+
+        // Start on scroll into view
+        observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !running) {
+                    runDemo();
+                } else if (!entry.isIntersecting && running) {
+                    running = false;
+                }
+            });
+        }, { threshold: 0.2 });
+
+        const demoSection = document.getElementById('demo');
+        if (demoSection) observer.observe(demoSection);
+    })();
 </script>
 
 </body>
