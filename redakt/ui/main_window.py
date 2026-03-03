@@ -349,7 +349,7 @@ class MainWindow(QMainWindow):
         left_layout.setSpacing(4)
         self.left_label = QLabel("DOCUMENT TEXT")
         self.left_label.setStyleSheet(
-            "font-size: 9px; color: #555; font-weight: bold;"
+            "font-size: 9px; color: {0}; font-weight: bold; letter-spacing: 1px;".format(_c()["TEXT_VDIM"])
         )
         left_layout.addWidget(self.left_label)
         self.original_view = QTextBrowser()
@@ -364,7 +364,7 @@ class MainWindow(QMainWindow):
         right_layout.setSpacing(4)
         self.right_label = QLabel("REDACTED PREVIEW")
         self.right_label.setStyleSheet(
-            "font-size: 9px; color: #555; font-weight: bold;"
+            "font-size: 9px; color: {0}; font-weight: bold; letter-spacing: 1px;".format(_c()["TEXT_VDIM"])
         )
         right_layout.addWidget(self.right_label)
         self.redacted_view = QTextBrowser()
@@ -404,6 +404,7 @@ class MainWindow(QMainWindow):
         hdr.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         hdr.resizeSection(5, 60)
+        self.entity_table.setAlternatingRowColors(True)
         self.entity_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
@@ -662,6 +663,11 @@ class MainWindow(QMainWindow):
                 f"font-size: 9px; color: {c['TEXT_DIM']}; "
                 f"letter-spacing: 1px;"
             )
+
+        # Pane labels
+        pane_lbl_style = f"font-size: 9px; color: {c['TEXT_VDIM']}; font-weight: bold; letter-spacing: 1px;"
+        self.left_label.setStyleSheet(pane_lbl_style)
+        self.right_label.setStyleSheet(pane_lbl_style)
 
         # Birth date widgets
         self._birth_date_label.setStyleSheet(

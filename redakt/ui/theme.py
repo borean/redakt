@@ -318,30 +318,32 @@ QTableWidget {{
     gridline-color: {c["BG_MID"]};
     font-family: {s["font"]};
     font-size: {s["table_size"]}px;
-    selection-background-color: {c["ACCENT_GLOW"]};
+    selection-background-color: {c["ACCENT"]}33;
     selection-color: {c["TEXT_PRIMARY"]};
+    alternate-background-color: {c["BG_MID"]};
 }}
 
 QTableWidget::item {{
-    padding: 4px 6px;
-    border-bottom: 1px solid {c["BG_MID"]};
+    padding: 5px 8px;
+    border-bottom: 1px solid {c["BORDER"]}44;
 }}
 
 QTableWidget::item:selected {{
-    background-color: {c["ACCENT_GLOW"]};
+    background-color: {c["ACCENT"]}33;
     color: {c["TEXT_PRIMARY"]};
 }}
 
 QHeaderView::section {{
     background-color: {c["BG_MID"]};
-    color: {c["TEXT_SECONDARY"]};
+    color: {c["TEXT_DIM"]};
     border: none;
-    border-bottom: 1px solid {c["BORDER"]};
+    border-bottom: 2px solid {c["BORDER"]};
     border-right: 1px solid {c["BG_DARK"]};
-    padding: 6px 8px;
+    padding: 8px 8px;
     font-size: {s["header_size"]}px;
     font-weight: bold;
-    letter-spacing: {s["section_spacing"]};
+    letter-spacing: {s["label_spacing"]};
+    text-transform: uppercase;
 }}
 
 /* ── GroupBox ─────────────────────────────────────────────── */
@@ -425,9 +427,9 @@ QCheckBox {{
 }}
 
 QCheckBox::indicator {{
-    width: 15px;
-    height: 15px;
-    border: 2px solid {c["BG_LIGHTER"]};
+    width: 14px;
+    height: 14px;
+    border: 1px solid {c["BORDER"]};
     border-radius: {s["small_radius"]}px;
     background: {c["BG_MID"]};
 }}
@@ -438,17 +440,17 @@ QCheckBox::indicator:checked {{
 }}
 
 QCheckBox::indicator:hover {{
-    border-color: {c["BORDER_ACTIVE"]};
+    border-color: {c["ACCENT"]};
 }}
 
 /* ── Splitter ─────────────────────────────────────────────── */
 
 QSplitter::handle {{
-    background-color: {c["BG_MID"]};
+    background-color: {c["BORDER"]};
 }}
 
 QSplitter::handle:hover {{
-    background-color: {c["BG_LIGHTER"]};
+    background-color: {c["ACCENT"]};
 }}
 
 QSplitter::handle:horizontal {{
@@ -503,17 +505,18 @@ QLabel#sectionHint {{
 }}
 
 QPushButton#secondary {{
-    background-color: {c["BG_LIGHT"]};
-    color: {c["TEXT_DIM"]};
+    background-color: {c["BG_MID"]};
+    color: {c["TEXT_SECONDARY"]};
     border: 1px solid {c["BORDER"]};
     border-radius: {s["small_radius"]}px;
     font-size: {s["tiny_size"]}px;
     padding: 4px 12px;
+    letter-spacing: 0.5px;
 }}
 
 QPushButton#secondary:hover {{
     color: {c["TEXT_PRIMARY"]};
-    border-color: {c["BORDER_ACTIVE"]};
+    border-color: {c["ACCENT"]};
 }}
 
 /* ── Titlebar / Toolbar (manifesto demo layout) ──────────── */
