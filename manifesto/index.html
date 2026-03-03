@@ -855,30 +855,17 @@
                 <span class="demo-btn scan-btn" id="demo-scan-btn" data-i18n="demo_scan">SCAN FOR PII</span>
                 <span class="demo-btn export-btn" id="demo-export-btn" data-i18n="demo_export">EXPORT</span>
                 <div class="demo-chips">
-                    <span class="demo-chip name" id="chip-name">NAME</span>
-                    <span class="demo-chip date" id="chip-date">DATE</span>
-                    <span class="demo-chip id" id="chip-id">ID</span>
-                    <span class="demo-chip location" id="chip-loc">LOCATION</span>
-                    <span class="demo-chip age" id="chip-age">AGE</span>
+                    <span class="demo-chip name" id="chip-name" data-i18n="chip_name">NAME</span>
+                    <span class="demo-chip date" id="chip-date" data-i18n="chip_date">DATE</span>
+                    <span class="demo-chip id" id="chip-id" data-i18n="chip_id">ID</span>
+                    <span class="demo-chip location" id="chip-loc" data-i18n="chip_loc">LOCATION</span>
+                    <span class="demo-chip age" id="chip-age" data-i18n="chip_age">AGE</span>
                 </div>
             </div>
             <div class="demo-panes">
                 <div class="demo-pane">
                     <div class="demo-pane-label" id="demo-left-label">Document text</div>
-                    <div class="demo-text" id="demo-text"><strong style="color:#e78a4e">Pediatrik Endokrin Poliklinik</strong>
-
-Hasta: <span class="pii name">Elif Demir</span>
-DT: <span class="pii date">08.04.2016</span>
-TC: <span class="pii id">98765432109</span>
-
-<span class="pii date">12.09.2023</span> Boy: 118 cm
-A&#287;&#305;rl&#305;k: 22.4 kg, BMI: 16.1
-<span class="pii date">15.03.2024</span> Boy: 121 cm
-A&#287;&#305;rl&#305;k: 23.8 kg, BMI: 16.3
-B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
-
-<span class="pii name">Do&#231;. Dr. Ay&#351;e Kara</span>
-<span class="pii location">Cerrahpa&#351;a T&#305;p Fak.</span></div>
+                    <div class="demo-text" id="demo-text"></div>
                 </div>
                 <div class="demo-pane">
                     <div class="demo-pane-label" id="demo-right-label">Redacted preview</div>
@@ -888,7 +875,7 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
             <div class="demo-status">
                 <div class="demo-status-dot" id="demo-status-dot"></div>
                 <span class="demo-status-text" id="demo-status-text">READY</span>
-                <span class="local-badge">100% LOCAL</span>
+                <span class="local-badge" data-i18n="demo_local_badge">100% LOCAL</span>
             </div>
         </div>
     </div>
@@ -1194,8 +1181,14 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
             // Demo
             demo_label: 'Nas\u0131l \u00e7al\u0131\u015f\u0131r',
             demo_title: 'Belge y\u00fckleyin. Taray\u0131n. Bitti.',
-            demo_scan: 'Tara',
-            demo_export: 'D\u0131\u015fa Aktar',
+            demo_scan: 'TARA',
+            demo_export: 'DIŞA AKTAR',
+            demo_local_badge: '%100 YEREL',
+            chip_name: 'AD',
+            chip_date: 'TARİH',
+            chip_id: 'KİMLİK',
+            chip_loc: 'KONUM',
+            chip_age: 'YAŞ',
 
             // Footer
             footer_text: '&copy; 2026 &middot; Bir klinisyen taraf\u0131ndan, klinisyenler i\u00e7in in\u015fa edildi. &middot; <a href="https://github.com/borean/redakt" target="_blank">GitHub</a>'
@@ -1240,6 +1233,9 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
                 if (englishHTML[key]) el.innerHTML = englishHTML[key];
             });
         }
+
+        // Notify demo to restart with new language
+        document.dispatchEvent(new CustomEvent('langchange'));
     }
 
     // Toggle handlers
@@ -1272,7 +1268,7 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
 
     // ── Demo animation ──
     (function() {
-        const piiEls = document.querySelectorAll('#demo-text .pii');
+        let piiEls = document.querySelectorAll('#demo-text .pii');
         const redactedPane = document.getElementById('demo-redacted');
         const leftLabel = document.getElementById('demo-left-label');
         const rightLabel = document.getElementById('demo-right-label');
@@ -1288,31 +1284,48 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
         const statusDot = document.getElementById('demo-status-dot');
         const statusText = document.getElementById('demo-status-text');
 
-        // Store original text content of the left pane to build redacted version
-        const origHTML = document.getElementById('demo-text').innerHTML;
+        // Bilingual demo content
+        const demoContent = {
+            tr: '<strong style="color:#e78a4e">Pediatrik Endokrin Poliklinik</strong>\n\nHasta: <span class="pii name">Elif Demir</span>\nTC: <span class="pii id">98765432109</span>\nMuayene: <span class="pii date" data-age="7 yıl 10 ay">03/03/2026</span>\nDoğum: <span class="pii date">11/04/2018</span>\nCinsiyet: Kız\n\nAğırlık: 23,12 kg (SDS: -0,57)\nBoy: 134,5 cm (SDS: 1,60)\nVKİ: 12,78 kg/m\u00b2 (SDS: -2,15)\nVücut yüzey alanı: 0,879 m\u00b2\n\n<span class="pii name">Doç. Dr. Ayşe Kara</span>\n<span class="pii location">Çınar Üniversitesi Tıp Fak.</span>',
+            en: '<strong style="color:#e78a4e">Pediatric Endocrine Outpatient</strong>\n\nPatient: <span class="pii name">Sarah Mitchell</span>\nSSN: <span class="pii id">491-07-8356</span>\nVisit: <span class="pii date" data-age="7 yrs 10 mo">03/03/2026</span>\nDOB: <span class="pii date">11/04/2018</span>\nSex: Female\n\nWeight: 23.12 kg (SDS: -0.57)\nHeight: 134.5 cm (SDS: 1.60)\nBMI: 12.78 kg/m\u00b2 (SDS: -2.15)\nBSA: 0.879 m\u00b2\n\n<span class="pii name">Dr. James Howard, MD</span>\n<span class="pii location">Oakwood University Hospital</span>'
+        };
+
+        const ageMap = {
+            tr: { '03/03/2026': '7 yıl 10 ay' },
+            en: { '03/03/2026': '7 yrs 10 mo' }
+        };
+
+        let origHTML = '';
         let running = false;
         let observer;
+
+        function setDemoContent() {
+            const lang = document.documentElement.lang === 'tr' ? 'tr' : 'en';
+            const textEl = document.getElementById('demo-text');
+            textEl.innerHTML = demoContent[lang];
+            origHTML = demoContent[lang];
+            piiEls = document.querySelectorAll('#demo-text .pii');
+        }
+
+        // Initialize demo content
+        setDemoContent();
 
         function makeBlocks(text) {
             return '\u2588'.repeat(Math.max(text.length, 3));
         }
 
-        // Age conversion: birth date 08.04.2016
-        const birthDate = new Date(2016, 3, 8);
-        const ageMap = {
-            '12.09.2023': '7.4 yrs',
-            '15.03.2024': '7.9 yrs'
-        };
-
         function buildRedactedHTML() {
+            const lang = document.documentElement.lang === 'tr' ? 'tr' : 'en';
+            const currentAgeMap = ageMap[lang];
             const el = document.createElement('div');
             el.innerHTML = origHTML;
             el.querySelectorAll('.pii').forEach(p => {
                 const type = Array.from(p.classList).find(c => ['name','date','id','location'].includes(c));
                 const text = p.textContent.trim();
-                if (type === 'date' && ageMap[text]) {
+                if (type === 'date' && currentAgeMap[text]) {
                     // Age conversion for visit dates
-                    p.outerHTML = '<span style="color:#d4884e;font-weight:600">at age ' + ageMap[text] + '</span>';
+                    const ageLabel = lang === 'tr' ? 'yaş' : 'age';
+                    p.outerHTML = '<span style="color:#d4884e;font-weight:600">' + ageLabel + ': ' + currentAgeMap[text] + '</span>';
                 } else if (type === 'date') {
                     // Birth date — fully redacted
                     p.outerHTML = '<span style="background:#808080;color:#808080;border-radius:1px;letter-spacing:-0.5px;font-size:0.65rem">' + makeBlocks(text) + '</span>';
@@ -1331,15 +1344,24 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
             Object.values(chips).forEach(c => c.classList.remove('visible'));
             scanBtn.classList.remove('scanning');
             const isTR = document.documentElement.lang === 'tr';
-            scanBtn.textContent = isTR ? 'PII TARA' : 'SCAN FOR PII';
+            // Update chip labels for current language
+            chips.name.textContent = isTR ? 'AD' : 'NAME';
+            chips.date.textContent = isTR ? 'TARİH' : 'DATE';
+            chips.id.textContent = isTR ? 'KİMLİK' : 'ID';
+            chips.location.textContent = isTR ? 'KONUM' : 'LOCATION';
+            chips.age.textContent = isTR ? 'YAŞ' : 'AGE';
+            scanBtn.textContent = isTR ? 'TARA' : 'SCAN FOR PII';
             exportBtn.classList.remove('ready');
-            exportBtn.textContent = isTR ? 'DI\u015eA AKTAR' : 'EXPORT';
+            exportBtn.textContent = isTR ? 'DIŞA AKTAR' : 'EXPORT';
             statusDot.classList.remove('processing');
-            statusText.textContent = 'READY';
+            statusText.textContent = isTR ? 'HAZIR' : 'READY';
             statusText.style.color = '';
             leftLabel.textContent = isTR ? 'Belge metni' : 'Document text';
             rightLabel.textContent = isTR ? 'Karart\u0131lm\u0131\u015f \u00f6nizleme' : 'Redacted preview';
-            redactedPane.innerHTML = '<span style="color:#555">' + (isTR ? 'Karart\u0131lm\u0131\u015f \u00f6nizleme i\u00e7in \u201cTara\u201d ya bas\u0131n.' : 'Click \u201cScan\u201d to preview redacted output.') + '</span>';
+            redactedPane.innerHTML = '<span style="color:#555">' + (isTR ? 'Karartılmış önizleme için \u201cTara\u201d ya basın.' : 'Click \u201cScan\u201d to preview redacted output.') + '</span>';
+            // Restore original demo text
+            document.getElementById('demo-text').innerHTML = origHTML;
+            piiEls = document.querySelectorAll('#demo-text .pii');
         }
 
         function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -1356,7 +1378,7 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
 
                 // Start scanning
                 scanBtn.classList.add('scanning');
-                scanBtn.textContent = isTR ? 'TARANIYOR...' : 'SCANNING...';
+                scanBtn.textContent = isTR ? 'TARANIYOR...' : 'SCANNING FOR PII...';
                 statusDot.classList.add('processing');
                 statusText.textContent = isTR ? 'YEREL OLARAK \u0130\u015eLEN\u0130YOR...' : 'PROCESSING LOCALLY...';
                 statusText.style.color = '#e78a4e';
@@ -1378,11 +1400,11 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
 
                 // Scan complete — update left label with count
                 scanBtn.classList.remove('scanning');
-                scanBtn.textContent = isTR ? 'PII TARA' : 'SCAN FOR PII';
+                scanBtn.textContent = isTR ? 'TARA' : 'SCAN FOR PII';
                 statusDot.classList.remove('processing');
                 const count = piiEls.length;
-                leftLabel.textContent = (isTR ? 'Belge metni' : 'Document text') + ' (' + count + ' PII)';
-                statusText.textContent = count + (isTR ? ' ki\u015fisel veri bulundu' : ' PII entities found');
+                leftLabel.textContent = (isTR ? 'Belge metni' : 'Document text') + ' (' + count + (isTR ? ' KV' : ' PII') + ')';
+                statusText.textContent = count + (isTR ? ' kişisel veri bulundu' : ' PII entities found');
                 statusText.style.color = '#e78a4e';
                 await sleep(2200);
 
@@ -1397,6 +1419,21 @@ B&#252;y&#252;me h&#305;z&#305;: 5.1 cm/y&#305;l
                 await sleep(5000);
             }
         }
+
+        // Restart demo when language changes
+        document.addEventListener('langchange', () => {
+            running = false;
+            setTimeout(() => {
+                setDemoContent();
+                reset();
+                // Re-run if demo section is in view
+                const demoSection = document.getElementById('demo');
+                const rect = demoSection.getBoundingClientRect();
+                if (rect.top < window.innerHeight && rect.bottom > 0) {
+                    runDemo();
+                }
+            }, 100);
+        });
 
         // Start on scroll into view
         observer = new IntersectionObserver(entries => {
