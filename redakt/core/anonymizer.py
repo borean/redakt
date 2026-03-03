@@ -461,6 +461,39 @@ class Anonymizer:
                     )
         return entities
 
+    def _extract_tc_kimlik_by_regex(self, text: str) -> list[PIIEntity]:
+        """Extract 11-digit Turkish national ID numbers (TC Kimlik No) via regex.
+
+        TC Kimlik numbers are exactly 11 digits, don't start with 0, and are
+        not part of a longer number sequence.
+        """
+        entities: list[PIIEntity] = []
+        for m in re.finditer(r"(?<!\d)([1-9]\d{10})(?!\d)", text):
+            entities.append(PIIEntity(
+                original=m.group(1),
+                category="id",
+                placeholder="",
+                subcategory="tc_kimlik",
+            ))
+        return entities
+
+    def _supplement_with_regex(self, result: PIIResponse, text: str) -> PIIResponse:
+        """Add entities the LLM missed using regex patterns.
+
+        Runs after LLM detection to catch common patterns like TC Kimlik numbers
+        that small models sometimes miss.
+        """
+        existing_originals = {e.original for e in result.entities}
+
+        # TC Kimlik numbers (11 digits)
+        for e in self._extract_tc_kimlik_by_regex(text):
+            if e.original not in existing_originals:
+                result.entities.append(e)
+                existing_originals.add(e.original)
+                log.info("Regex supplement: found TC Kimlik %s...", e.original[:4])
+
+        return result
+
     async def detect_pii_from_text(self, text: str) -> PIIResponse:
         sys_prompt, usr_template = self._get_prompts()
 
@@ -494,6 +527,9 @@ class Anonymizer:
                     entities=self._renumber_placeholders(fallback),
                     summary="Dates found via pattern matching",
                 )
+
+        # Supplement: add entities the LLM missed (TC Kimlik, etc.)
+        result = self._supplement_with_regex(result, text)
 
         return self._normalize_entities(result)
 
@@ -1173,10 +1209,10 @@ class Anonymizer:
                 if years == 0 and months == 0:
                     e.placeholder = "doğduğu gün"
                 else:
-                    frac = round(years + months / 12, 1)
+                    frac = round(years + months / 12, 2)
                     e.placeholder = f"{frac} yaşında"
             else:
-                frac = round(years + months / 12, 1)
+                frac = round(years + months / 12, 2)
                 e.placeholder = f"at age {frac} yrs"
 
         return entities, birth_entity.original if birth_entity else None

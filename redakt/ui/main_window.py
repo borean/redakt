@@ -566,6 +566,12 @@ class MainWindow(QMainWindow):
         self.export_btn.setText(t("export_redacted", lang))
         self.export_btn.setToolTip(t("tip_export", lang))
         self.status_bar.set_local_badge(t("status_local_badge", lang))
+        self.status_bar.set_translations(
+            ready=t("status_ready", lang),
+            not_ready=t("status_not_ready", lang),
+            processing=t("status_processing", lang),
+            error=t("status_error", lang),
+        )
 
     def _connect_signals(self):
         self.llamacpp_manager.server_ready.connect(self._on_model_ready)

@@ -1,204 +1,105 @@
-import psutil
-from PySide6.QtCore import QTimer, Slot
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QWidget
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
-# ── Factory AI neutral dark theme colors ──────────────────────────────────────
-_BG_DARKEST = "#111111"
-_BG_DARK = "#1a1a1a"
-_BG_MID = "#252525"
-_BG_LIGHT = "#303030"
-_BG_LIGHTER = "#3d3d3d"
-_BORDER = "#333333"
-_TEXT = "#d4d4d4"
-_TEXT_DIM = "#808080"
-_ACCENT = "#e78a4e"
-_ACCENT_DIM = "#c47a42"
-_ERROR = "#d46b6b"
-_WARNING = "#d4a04e"
-_SUCCESS = "#6bbd6b"
-_BLUE = "#7aabdb"
+from redakt.ui import theme as theme_module
 
 
-class OllamaStatusBar(QWidget):
+def _c():
+    tm = getattr(theme_module, "theme_manager", None)
+    return tm.get_colors() if tm else {
+        "BG_DARKEST": "#111111", "BORDER": "#333333",
+        "TEXT_DIM": "#808080", "ACCENT": "#e78a4e",
+        "ERROR": "#d46b6b", "SUCCESS": "#6bbd6b",
+    }
+
+
+class StatusBar(QWidget):
+    """Simple status bar: Ready / Processing + LOCAL badge. No internal details."""
+
     def __init__(self):
         super().__init__()
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 4, 12, 4)
 
-        self.ollama_indicator = QLabel("ENGINE: CHECKING...")
-        self.ollama_indicator.setStyleSheet(
-            f"color: {_TEXT_DIM}; font-size: 10px; letter-spacing: 1px;"
-        )
-        self.model_indicator = QLabel("MODEL: --")
-        self.model_indicator.setStyleSheet(
-            f"color: {_TEXT_DIM}; font-size: 10px; letter-spacing: 1px;"
-        )
+        # Translatable status texts (updated via set_translations)
+        self._t_ready = "READY"
+        self._t_not_ready = "NOT READY"
+        self._t_processing = "PROCESSING LOCALLY..."
+        self._t_error = "ERROR"
 
-        layout.addWidget(self.ollama_indicator)
-        layout.addWidget(self.model_indicator)
+        self._status_label = QLabel(self._t_ready)
+        layout.addWidget(self._status_label)
 
         layout.addStretch()
 
-        # CPU usage
-        self._cpu_label = QLabel("CPU: --%")
-        self._cpu_label.setStyleSheet(f"color: {_TEXT_DIM}; font-size: 10px;")
-        layout.addWidget(self._cpu_label)
-
-        self._cpu_bar = QProgressBar()
-        self._cpu_bar.setRange(0, 100)
-        self._cpu_bar.setFixedSize(60, 10)
-        self._cpu_bar.setTextVisible(False)
-        self._cpu_bar.setStyleSheet(f"""
-            QProgressBar {{
-                background: {_BG_MID};
-                border: 1px solid {_BORDER};
-                border-radius: 3px;
-            }}
-            QProgressBar::chunk {{
-                background: {_TEXT_DIM};
-                border-radius: 2px;
-            }}
-        """)
-        layout.addWidget(self._cpu_bar)
-
-        layout.addSpacing(8)
-
-        # RAM usage
-        self._ram_label = QLabel("RAM: --/--GB")
-        self._ram_label.setStyleSheet(f"color: {_TEXT_DIM}; font-size: 10px;")
-        layout.addWidget(self._ram_label)
-
-        self._ram_bar = QProgressBar()
-        self._ram_bar.setRange(0, 100)
-        self._ram_bar.setFixedSize(60, 10)
-        self._ram_bar.setTextVisible(False)
-        self._ram_bar.setStyleSheet(f"""
-            QProgressBar {{
-                background: {_BG_MID};
-                border: 1px solid {_BORDER};
-                border-radius: 3px;
-            }}
-            QProgressBar::chunk {{
-                background: {_TEXT_DIM};
-                border-radius: 2px;
-            }}
-        """)
-        layout.addWidget(self._ram_bar)
-
-        layout.addSpacing(10)
-
-        # LOCAL badge — permanent indicator
-        self._local_badge = QLabel("LOCAL")
-        self._local_badge.setStyleSheet(
-            f"color: {_SUCCESS}; font-size: 9px; font-weight: bold; "
-            f"letter-spacing: 1.5px; border: 1px solid {_SUCCESS}40; "
-            f"border-radius: 2px; padding: 1px 6px;"
-        )
+        self._local_badge = QLabel("100% LOCAL · NO INTERNET")
         layout.addWidget(self._local_badge)
 
+        self._apply_theme()
+
+    def _apply_theme(self):
+        """Apply current theme colors. Called on init and when theme changes."""
+        c = _c()
+        self._status_label.setStyleSheet(
+            f"color: {c['TEXT_DIM']}; font-size: 10px; letter-spacing: 1px;"
+        )
+        self._local_badge.setStyleSheet(
+            f"color: {c['SUCCESS']}; font-size: 9px; font-weight: bold; "
+            f"letter-spacing: 1.5px; border: 1px solid {c['SUCCESS']}40; "
+            f"border-radius: 2px; padding: 2px 8px;"
+        )
         self.setStyleSheet(
-            f"OllamaStatusBar {{ background-color: {_BG_DARKEST}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; }}"
+            f"StatusBar {{ background-color: {c['BG_DARKEST']}; "
+            f"border: 1px solid {c['BORDER']}; border-radius: 2px; }}"
         )
 
-        # Resource monitor timer
-        self._resource_timer = QTimer(self)
-        self._resource_timer.timeout.connect(self._update_resources)
-        self._resource_timer.start(2000)  # every 2 seconds
-        self._update_resources()  # initial update
+    def set_translations(self, *, ready: str, not_ready: str, processing: str, error: str):
+        """Update translatable status texts (called from _relabel_ui)."""
+        self._t_ready = ready
+        self._t_not_ready = not_ready
+        self._t_processing = processing
+        self._t_error = error
 
     @Slot(bool)
-    def set_ollama_status(self, running: bool):
+    def set_ready_status(self, running: bool):
+        c = _c()
         if running:
-            self.ollama_indicator.setText("ENGINE: CONNECTED")
-            self.ollama_indicator.setStyleSheet(
-                f"color: {_TEXT}; font-size: 10px; letter-spacing: 1px;"
+            self._status_label.setText(self._t_ready)
+            self._status_label.setStyleSheet(
+                f"color: {c['SUCCESS']}; font-size: 10px; letter-spacing: 1px;"
             )
         else:
-            self.ollama_indicator.setText("ENGINE: OFFLINE")
-            self.ollama_indicator.setStyleSheet(
-                f"color: {_ERROR}; font-size: 10px; letter-spacing: 1px;"
+            self._status_label.setText(self._t_not_ready)
+            self._status_label.setStyleSheet(
+                f"color: {c['ERROR']}; font-size: 10px; letter-spacing: 1px;"
             )
 
     @Slot(bool)
     def set_active_inference(self, active: bool):
-        """Switch resource monitor between idle and active visual modes."""
+        """Show Processing when scanning, Ready when idle."""
+        c = _c()
         if active:
-            self.ollama_indicator.setText("ENGINE: INFERENCING...")
-            self.ollama_indicator.setStyleSheet(
-                f"color: {_ACCENT}; font-size: 10px; letter-spacing: 1px;"
+            self._status_label.setText(self._t_processing)
+            self._status_label.setStyleSheet(
+                f"color: {c['ACCENT']}; font-size: 10px; letter-spacing: 1px;"
             )
-            self._resource_timer.setInterval(500)  # faster polling during inference
-            bar_style = f"""
-                QProgressBar {{
-                    background: {_BG_MID};
-                    border: 1px solid {_ACCENT}40;
-                    border-radius: 3px;
-                }}
-                QProgressBar::chunk {{
-                    background: {_ACCENT};
-                    border-radius: 2px;
-                }}
-            """
-            self._cpu_bar.setStyleSheet(bar_style)
-            self._ram_bar.setStyleSheet(bar_style)
-            self._cpu_label.setStyleSheet(f"color: {_TEXT}; font-size: 10px;")
-            self._ram_label.setStyleSheet(f"color: {_TEXT}; font-size: 10px;")
         else:
-            self.ollama_indicator.setText("ENGINE: CONNECTED")
-            self.ollama_indicator.setStyleSheet(
-                f"color: {_TEXT}; font-size: 10px; letter-spacing: 1px;"
+            self._status_label.setText(self._t_ready)
+            self._status_label.setStyleSheet(
+                f"color: {c['SUCCESS']}; font-size: 10px; letter-spacing: 1px;"
             )
-            self._resource_timer.setInterval(2000)  # slow polling when idle
-            bar_style = f"""
-                QProgressBar {{
-                    background: {_BG_MID};
-                    border: 1px solid {_BORDER};
-                    border-radius: 3px;
-                }}
-                QProgressBar::chunk {{
-                    background: {_TEXT_DIM};
-                    border-radius: 2px;
-                }}
-            """
-            self._cpu_bar.setStyleSheet(bar_style)
-            self._ram_bar.setStyleSheet(bar_style)
-            self._cpu_label.setStyleSheet(f"color: {_TEXT_DIM}; font-size: 10px;")
-            self._ram_label.setStyleSheet(f"color: {_TEXT_DIM}; font-size: 10px;")
 
     @Slot(str)
     def set_model_status(self, status: str):
-        self.model_indicator.setText(f"MODEL: {status.upper()}")
-        if "ready" in status.lower() or "qwen" in status.lower():
-            self.model_indicator.setStyleSheet(
-                f"color: {_TEXT}; font-size: 10px; letter-spacing: 1px;"
-            )
-        elif "starting" in status.lower() or "loading" in status.lower() or "scanning" in status.lower():
-            self.model_indicator.setStyleSheet(
-                f"color: {_TEXT_DIM}; font-size: 10px; letter-spacing: 1px;"
-            )
-        elif "failed" in status.lower() or "error" in status.lower():
-            self.model_indicator.setStyleSheet(
-                f"color: {_ERROR}; font-size: 10px; letter-spacing: 1px;"
-            )
-        else:
-            self.model_indicator.setStyleSheet(
-                f"color: {_TEXT_DIM}; font-size: 10px; letter-spacing: 1px;"
+        """Ignore internal model/backend names — keep status simple."""
+        if "failed" in status.lower() or "error" in status.lower():
+            c = _c()
+            self._status_label.setText(self._t_error)
+            self._status_label.setStyleSheet(
+                f"color: {c['ERROR']}; font-size: 10px; letter-spacing: 1px;"
             )
 
-    @Slot()
-    def _update_resources(self):
-        """Poll system CPU and RAM usage."""
-        try:
-            cpu = psutil.cpu_percent(interval=None)
-            mem = psutil.virtual_memory()
-
-            self._cpu_bar.setValue(int(cpu))
-            self._cpu_label.setText(f"CPU: {int(cpu)}%")
-
-            used_gb = mem.used / (1024 ** 3)
-            total_gb = mem.total / (1024 ** 3)
-            self._ram_bar.setValue(int(mem.percent))
-            self._ram_label.setText(f"RAM: {used_gb:.0f}/{total_gb:.0f}GB")
-        except Exception:
-            pass  # psutil can occasionally fail, just skip
+    @Slot(str)
+    def set_local_badge(self, text: str):
+        """Update the local/no-internet badge (for i18n)."""
+        self._local_badge.setText(text)

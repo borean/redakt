@@ -284,10 +284,10 @@ class TestApplyAgeConversion:
         assert entities[1].placeholder == "at age 12.0 yrs"
 
     def test_turkish_decimal_age(self, anon_tr):
-        """Turkish mode shows decimal ages (e.g. 12.2 yaşında)."""
+        """Turkish mode shows 2-decimal ages (e.g. 12.17 yaşında)."""
         entities = self._make_entities("29.03.2012", "15.06.2024")
         anon_tr._apply_age_conversion(entities, "")
-        assert entities[1].placeholder == "12.2 yaşında"
+        assert entities[1].placeholder == "12.17 yaşında"
 
     def test_non_date_entities_untouched(self, anon_tr):
         entities = [

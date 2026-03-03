@@ -291,7 +291,9 @@ _STRINGS = {
     "local": {"tr": "YEREL", "en": "LOCAL"},
     "inferencing": {"tr": "İŞLENİYOR...", "en": "INFERENCING..."},
     "status_ready": {"tr": "HAZIR", "en": "READY"},
+    "status_not_ready": {"tr": "HAZIR DEĞİL", "en": "NOT READY"},
     "status_processing": {"tr": "YERELDE İŞLENİYOR...", "en": "PROCESSING LOCALLY..."},
+    "status_error": {"tr": "HATA", "en": "ERROR"},
     "status_local_badge": {"tr": "%100 YEREL · İNTERNET GEREKMİYOR", "en": "100% LOCAL · NO INTERNET"},
 }
 
