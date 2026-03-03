@@ -154,69 +154,187 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
-        root.setSpacing(8)
-        root.setContentsMargins(16, 12, 16, 8)
+        root.setSpacing(0)
+        root.setContentsMargins(0, 0, 0, 0)
 
-        # ── Top bar ──
-        top = QHBoxLayout()
+        # ── Titlebar ──
+        titlebar = QWidget()
+        titlebar.setObjectName("titlebar")
+        titlebar.setFixedHeight(38)
+        titlebar.setStyleSheet(f"#titlebar {{ background: {_c()['BG_MID']}; }}")
+        titlebar_layout = QHBoxLayout(titlebar)
+        titlebar_layout.setContentsMargins(8, 0, 8, 0)
+        titlebar_layout.setSpacing(6)
 
-        # Title with cyber glow
-        title = QLabel("REDAKT")
-        title.setStyleSheet(
-            f"font-size: 22px; font-weight: bold; color: {_c()["ACCENT"]}; "
-            f"letter-spacing: 6px;"
-        )
-        top.addWidget(title)
+        # Left: lang combo + settings button
+        self.lang_combo = QComboBox()
+        self.lang_combo.addItem("TR", Language.TR)
+        self.lang_combo.addItem("EN", Language.EN)
+        self.lang_combo.setFixedWidth(50)
+        self.lang_combo.currentIndexChanged.connect(self._relabel_ui)
+        titlebar_layout.addWidget(self.lang_combo)
 
-        subtitle = QLabel("LOCAL DE-IDENTIFICATION")
-        subtitle.setStyleSheet(
-            f"font-size: 11px; color: {_c()["TEXT_DIM"]}; letter-spacing: 3px; "
-            f"padding-top: 8px;"
-        )
-        top.addWidget(subtitle)
-
-        top.addStretch()
         self.settings_btn = QPushButton("CONFIG")
         self.settings_btn.setObjectName("secondary")
+        self.settings_btn.setFixedHeight(22)
         self.settings_btn.setToolTip("Configure model, backend, and language settings")
         self.settings_btn.clicked.connect(self._open_settings)
-        top.addWidget(self.settings_btn)
-        root.addLayout(top)
+        titlebar_layout.addWidget(self.settings_btn)
 
-        # Thin accent line under title
-        line = QWidget()
-        line.setFixedHeight(1)
-        line.setStyleSheet(
-            f"background: qlineargradient(x1:0, x2:1, "
-            f"stop:0 {_c()["TEXT_DIM"]}, stop:0.5 {_c()["TEXT_DIM"]}44, stop:1 transparent);"
+        titlebar_layout.addStretch()
+
+        # Center: title + subtitle stacked
+        title_block = QVBoxLayout()
+        title_block.setSpacing(0)
+        title_block.setContentsMargins(0, 0, 0, 0)
+
+        title = QLabel("REDAKT")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet(
+            f"font-size: 12px; font-weight: bold; color: {_c()['ACCENT']}; "
+            f"letter-spacing: 2px;"
         )
-        root.addWidget(line)
+        title_block.addWidget(title)
 
-        # ── File bar ──
-        file_bar = QHBoxLayout()
+        subtitle = QLabel("LOCAL DE-IDENTIFICATION")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle.setStyleSheet(
+            f"font-size: 9px; color: {_c()['TEXT_DIM']}; letter-spacing: 1.5px;"
+        )
+        title_block.addWidget(subtitle)
+
+        titlebar_layout.addLayout(title_block)
+
+        titlebar_layout.addStretch()
+
+        # Right: file label
         self.file_label = QLabel("NO FILE LOADED")
         self.file_label.setStyleSheet(
-            f"font-size: 11px; color: {_c()["TEXT_DIM"]}; padding: 4px 0; "
+            f"font-size: 9px; color: {_c()['TEXT_DIM']}; "
             f"letter-spacing: 1px;"
         )
-        file_bar.addWidget(self.file_label, stretch=1)
+        titlebar_layout.addWidget(self.file_label)
+
+        root.addWidget(titlebar)
+        self._titlebar = titlebar
+
+        # ── Toolbar ──
+        toolbar = QWidget()
+        toolbar.setObjectName("toolbar")
+        toolbar.setStyleSheet(
+            f"#toolbar {{ background: {_c()['BG_DARK']}; "
+            f"border-bottom: 1px solid {_c()['BORDER']}; }}"
+        )
+        toolbar_layout = QHBoxLayout(toolbar)
+        toolbar_layout.setContentsMargins(8, 4, 8, 4)
+        toolbar_layout.setSpacing(6)
+
         self.open_btn = QPushButton("OPEN FILE")
+        self.open_btn.setObjectName("secondary")
+        self.open_btn.setFixedHeight(26)
         self.open_btn.setToolTip("Open a medical document (PDF, DOCX, XLSX, or image)")
         self.open_btn.clicked.connect(self._open_file_dialog)
-        file_bar.addWidget(self.open_btn)
+        toolbar_layout.addWidget(self.open_btn)
+
+        self.scan_btn = QPushButton("SCAN FOR PII")
+        self.scan_btn.setToolTip("Run AI analysis to detect all personal data in the document")
+        self.scan_btn.setObjectName("primary")
+        self.scan_btn.setFixedHeight(26)
+        self.scan_btn.clicked.connect(self._start_scan)
+        toolbar_layout.addWidget(self.scan_btn)
+
+        self.format_combo = QComboBox()
+        for fmt in EXPORT_FORMATS:
+            self.format_combo.addItem(fmt)
+        self.format_combo.setFixedWidth(90)
+        self.format_combo.setFixedHeight(26)
+        toolbar_layout.addWidget(self.format_combo)
+
+        self.export_btn = QPushButton("EXPORT")
+        self.export_btn.setToolTip("Export the redacted document with PII removed")
+        self.export_btn.setFixedHeight(26)
+        self.export_btn.clicked.connect(self._export_file)
+        toolbar_layout.addWidget(self.export_btn)
+
         self.clear_btn = QPushButton("CLEAR")
+        self.clear_btn.setObjectName("secondary")
+        self.clear_btn.setFixedHeight(26)
         self.clear_btn.setToolTip("Close the current document and reset")
         self.clear_btn.clicked.connect(self._clear)
-        file_bar.addWidget(self.clear_btn)
-        root.addLayout(file_bar)
+        toolbar_layout.addWidget(self.clear_btn)
 
-        self._workflow_hint = QLabel(
-            "1. Open file  \u2192  2. Scan for PII  \u2192  3. Review & toggle  \u2192  4. Export"
+        toolbar_layout.addSpacing(12)
+
+        self.age_mode_cb = QCheckBox("AGE")
+        self.age_mode_cb.setToolTip(
+            "When a birth date is found, replace other dates with patient age "
+            "(e.g., 'at age 3.5 yrs'). Useful for pediatric documents."
         )
-        self._workflow_hint.setObjectName("sectionHint")
-        self._workflow_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._workflow_hint.setWordWrap(True)
-        root.addWidget(self._workflow_hint)
+        self.age_mode_cb.setChecked(False)
+        self.age_mode_cb.toggled.connect(self._on_age_mode_toggled)
+        toolbar_layout.addWidget(self.age_mode_cb)
+
+        # Birth date display (shown when age conversion used a birth date)
+        self._birth_date_label = QLabel()
+        self._birth_date_label.setStyleSheet(
+            f"font-size: 10px; color: {_c()['TEXT_DIM']}; letter-spacing: 0.5px;"
+        )
+        self._birth_date_value = QLabel()
+        self._birth_date_value.setStyleSheet(
+            f"font-size: 10px; color: {_c()['TEXT']}; font-weight: 600;"
+        )
+        self._change_birth_btn = QPushButton()
+        self._change_birth_btn.setStyleSheet(
+            f"QPushButton {{ background: transparent; color: {_c()['ACCENT']}; "
+            f"font-size: 10px; border: none; padding: 2px 6px; }}"
+            f"QPushButton:hover {{ text-decoration: underline; }}"
+        )
+        self._change_birth_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._change_birth_btn.clicked.connect(self._on_change_birth_date)
+        self._birth_date_widget = QWidget()
+        birth_layout = QHBoxLayout(self._birth_date_widget)
+        birth_layout.setContentsMargins(4, 0, 0, 0)
+        birth_layout.setSpacing(4)
+        birth_layout.addWidget(self._birth_date_label)
+        birth_layout.addWidget(self._birth_date_value)
+        birth_layout.addWidget(self._change_birth_btn)
+        self._birth_date_widget.setVisible(False)
+        toolbar_layout.addWidget(self._birth_date_widget)
+
+        toolbar_layout.addStretch()
+
+        # Category chip container (populated after scan)
+        self.chip_container = QHBoxLayout()
+        self.chip_container.setSpacing(4)
+        toolbar_layout.addLayout(self.chip_container)
+
+        # Select All / None buttons
+        self.select_all_btn = QPushButton("SELECT ALL")
+        self.select_all_btn.setObjectName("secondary")
+        self.select_all_btn.setFixedHeight(20)
+        self.select_all_btn.setToolTip("Enable all detected entities for redaction")
+        self.select_all_btn.clicked.connect(self._select_all)
+        self.select_all_btn.setVisible(False)
+        toolbar_layout.addWidget(self.select_all_btn)
+
+        self.select_none_btn = QPushButton("SELECT NONE")
+        self.select_none_btn.setObjectName("secondary")
+        self.select_none_btn.setFixedHeight(20)
+        self.select_none_btn.setToolTip("Disable all entities (nothing will be redacted)")
+        self.select_none_btn.clicked.connect(self._select_none)
+        self.select_none_btn.setVisible(False)
+        toolbar_layout.addWidget(self.select_none_btn)
+
+        root.addWidget(toolbar)
+        self._toolbar = toolbar
+
+        # ── Progress bar (hidden by default) ──
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setFixedHeight(3)
+        self.progress_bar.setTextVisible(False)
+        root.addWidget(self.progress_bar)
 
         # ── Main vertical splitter ──
         self.main_splitter = QSplitter(Qt.Orientation.Vertical)
@@ -227,14 +345,13 @@ class MainWindow(QMainWindow):
         # Left panel: original text with highlights
         left = QWidget()
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setContentsMargins(8, 8, 4, 0)
         left_layout.setSpacing(4)
-        self.left_label = self._tech_label("Document Text")
-        left_layout.addWidget(self.left_label)
-        self._left_hint = self._section_hint(
-            "Original document text. PII entities are highlighted after scanning."
+        self.left_label = QLabel("DOCUMENT TEXT")
+        self.left_label.setStyleSheet(
+            "font-size: 9px; color: #555; font-weight: bold;"
         )
-        left_layout.addWidget(self._left_hint)
+        left_layout.addWidget(self.left_label)
         self.original_view = QTextBrowser()
         self.original_view.setOpenExternalLinks(False)
         left_layout.addWidget(self.original_view)
@@ -243,14 +360,13 @@ class MainWindow(QMainWindow):
         # Right panel: redacted preview
         right = QWidget()
         right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setContentsMargins(4, 8, 8, 0)
         right_layout.setSpacing(4)
-        self.right_label = self._tech_label("Redacted Preview")
-        right_layout.addWidget(self.right_label)
-        self._right_hint = self._section_hint(
-            "Preview with personal data replaced by black bars."
+        self.right_label = QLabel("REDACTED PREVIEW")
+        self.right_label.setStyleSheet(
+            "font-size: 9px; color: #555; font-weight: bold;"
         )
-        right_layout.addWidget(self._right_hint)
+        right_layout.addWidget(self.right_label)
         self.redacted_view = QTextBrowser()
         self.redacted_view.setOpenExternalLinks(False)
         right_layout.addWidget(self.redacted_view)
@@ -260,46 +376,14 @@ class MainWindow(QMainWindow):
         text_splitter.setChildrenCollapsible(False)
         self.main_splitter.addWidget(text_splitter)
 
-        # ── Middle section: Entity panel (chips + table) ──
+        # ── Middle section: Entity panel (label + table) ──
         table_panel = QWidget()
         table_layout = QVBoxLayout(table_panel)
-        table_layout.setContentsMargins(0, 0, 0, 0)
+        table_layout.setContentsMargins(8, 4, 8, 0)
         table_layout.setSpacing(4)
 
-        # Header row: label + category chips
-        header_row = QHBoxLayout()
         self.table_label = self._tech_label("Detected PII")
-        header_row.addWidget(self.table_label)
-        header_row.addSpacing(16)
-
-        # Category chip container (populated after scan)
-        self.chip_container = QHBoxLayout()
-        self.chip_container.setSpacing(6)
-        header_row.addLayout(self.chip_container)
-        header_row.addStretch()
-
-        # Select All / None buttons
-        self.select_all_btn = QPushButton("SELECT ALL")
-        self.select_all_btn.setObjectName("secondary")
-        self.select_all_btn.setFixedHeight(22)
-        self.select_all_btn.setToolTip("Enable all detected entities for redaction")
-        self.select_all_btn.clicked.connect(self._select_all)
-        self.select_all_btn.setVisible(False)
-        header_row.addWidget(self.select_all_btn)
-
-        self.select_none_btn = QPushButton("SELECT NONE")
-        self.select_none_btn.setObjectName("secondary")
-        self.select_none_btn.setFixedHeight(22)
-        self.select_none_btn.setToolTip("Disable all entities (nothing will be redacted)")
-        self.select_none_btn.clicked.connect(self._select_none)
-        self.select_none_btn.setVisible(False)
-        header_row.addWidget(self.select_none_btn)
-
-        table_layout.addLayout(header_row)
-        self._entity_hint = self._section_hint(
-            "Toggle individual items on/off. Unchecked items won't be redacted."
-        )
-        table_layout.addWidget(self._entity_hint)
+        table_layout.addWidget(self.table_label)
 
         # Entity table: checkbox | # | Original | Category | Placeholder | Conf
         self.entity_table = QTableWidget(0, 6)
@@ -386,96 +470,6 @@ class MainWindow(QMainWindow):
         self.main_splitter.setChildrenCollapsible(False)
         root.addWidget(self.main_splitter, stretch=1)
 
-        # ── Progress bar (hidden by default) ──
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 0)
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setFixedHeight(4)
-        self.progress_bar.setTextVisible(False)
-        root.addWidget(self.progress_bar)
-
-        # ── Controls bar ──
-        controls = QHBoxLayout()
-        controls.setSpacing(10)
-
-        self._lang_label = QLabel("LANG:")
-        self._lang_label.setObjectName("sectionLabel")
-        controls.addWidget(self._lang_label)
-        self.lang_combo = QComboBox()
-        self.lang_combo.addItem("TR", Language.TR)
-        self.lang_combo.addItem("EN", Language.EN)
-        self.lang_combo.setFixedWidth(60)
-        self.lang_combo.currentIndexChanged.connect(self._relabel_ui)
-        controls.addWidget(self.lang_combo)
-
-        controls.addSpacing(8)
-
-        self.age_mode_cb = QCheckBox("AGE-BASED DATES")
-        self.age_mode_cb.setToolTip(
-            "When a birth date is found, replace other dates with patient age "
-            "(e.g., 'at age 3.5 yrs'). Useful for pediatric documents."
-        )
-        self.age_mode_cb.setChecked(False)
-        self.age_mode_cb.toggled.connect(self._on_age_mode_toggled)
-        controls.addWidget(self.age_mode_cb)
-
-        # Birth date display (shown when age conversion used a birth date)
-        self._birth_date_label = QLabel()
-        self._birth_date_label.setStyleSheet(
-            f"font-size: 10px; color: {_c()['TEXT_DIM']}; letter-spacing: 0.5px;"
-        )
-        self._birth_date_value = QLabel()
-        self._birth_date_value.setStyleSheet(
-            f"font-size: 10px; color: {_c()['TEXT']}; font-weight: 600;"
-        )
-        self._change_birth_btn = QPushButton()
-        self._change_birth_btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {_c()['ACCENT']}; "
-            f"font-size: 10px; border: none; padding: 2px 6px; }}"
-            f"QPushButton:hover {{ text-decoration: underline; }}"
-        )
-        self._change_birth_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._change_birth_btn.clicked.connect(self._on_change_birth_date)
-        self._birth_date_widget = QWidget()
-        birth_layout = QHBoxLayout(self._birth_date_widget)
-        birth_layout.setContentsMargins(8, 0, 0, 0)
-        birth_layout.setSpacing(6)
-        birth_layout.addWidget(self._birth_date_label)
-        birth_layout.addWidget(self._birth_date_value)
-        birth_layout.addWidget(self._change_birth_btn)
-        self._birth_date_widget.setVisible(False)
-        controls.addWidget(self._birth_date_widget)
-
-        controls.addSpacing(8)
-
-        self.scan_btn = QPushButton("SCAN FOR PII")
-        self.scan_btn.setToolTip("Run AI analysis to detect all personal data in the document")
-        self.scan_btn.setObjectName("primary")
-        self.scan_btn.setMinimumWidth(160)
-        self.scan_btn.setMinimumHeight(32)
-        self.scan_btn.clicked.connect(self._start_scan)
-        controls.addWidget(self.scan_btn)
-
-        controls.addSpacing(12)
-
-        controls.addStretch()
-
-        self._export_label = QLabel("EXPORT:")
-        self._export_label.setObjectName("sectionLabel")
-        controls.addWidget(self._export_label)
-        self.format_combo = QComboBox()
-        for fmt in EXPORT_FORMATS:
-            self.format_combo.addItem(fmt)
-        self.format_combo.setFixedWidth(110)
-        controls.addWidget(self.format_combo)
-
-        self.export_btn = QPushButton("EXPORT REDACTED")
-        self.export_btn.setToolTip("Export the redacted document with PII removed")
-        self.export_btn.setMinimumHeight(32)
-        self.export_btn.clicked.connect(self._export_file)
-        controls.addWidget(self.export_btn)
-        root.addLayout(controls)
-
         # ── Status bar ──
         self.status_bar = StatusBar()
         root.addWidget(self.status_bar)
@@ -511,19 +505,10 @@ class MainWindow(QMainWindow):
         self.clear_btn.setText(t("clear", lang))
         self.clear_btn.setToolTip(t("tip_clear", lang))
 
-        # Workflow hint
-        self._workflow_hint.setText(t("workflow_hint", lang))
-
         # Panel headers
         if not self._entities:
             self.left_label.setText(t("document_text", lang))
         self.right_label.setText(t("redacted_preview", lang))
-
-        # Section hints
-        self._left_hint.setText(t("document_hint", lang))
-        self._right_hint.setText(t("redacted_hint", lang))
-        self._entity_hint.setText(t("entity_hint", lang))
-        self._ai_hint.setText(t("ai_hint", lang))
 
         # Entity panel header
         if not self._entities:
@@ -552,18 +537,16 @@ class MainWindow(QMainWindow):
         self.send_btn.setText(t("send", lang))
         self.send_btn.setToolTip(t("tip_send", lang))
 
-        # Controls bar
-        self._lang_label.setText(t("lang", lang))
+        # Toolbar
         self.scan_btn.setText(t("scan_for_pii", lang))
         self.scan_btn.setToolTip(t("tip_scan", lang))
-        self.age_mode_cb.setText(t("age_based_dates", lang))
+        self.age_mode_cb.setText(t("age_short", lang))
         self.age_mode_cb.setToolTip(t("tip_age_mode", lang))
         if self._birth_date_text:
             self._birth_date_label.setText(t("birth_date_label", lang))
             self._change_birth_btn.setText(t("change_birth_date", lang))
             self._change_birth_btn.setToolTip(t("tip_change_birth_date", lang))
-        self._export_label.setText(t("export", lang))
-        self.export_btn.setText(t("export_redacted", lang))
+        self.export_btn.setText(t("export_short", lang))
         self.export_btn.setToolTip(t("tip_export", lang))
         self.status_bar.set_local_badge(t("status_local_badge", lang))
         self.status_bar.set_translations(
@@ -659,15 +642,24 @@ class MainWindow(QMainWindow):
         """Refresh UI when theme changes (e.g. from settings)."""
         c = _c()
 
+        # Titlebar background
+        self._titlebar.setStyleSheet(f"#titlebar {{ background: {c['BG_MID']}; }}")
+
+        # Toolbar border
+        self._toolbar.setStyleSheet(
+            f"#toolbar {{ background: {c['BG_DARK']}; "
+            f"border-bottom: 1px solid {c['BORDER']}; }}"
+        )
+
         # File label
         if self._current_file:
             self.file_label.setStyleSheet(
-                f"font-size: 11px; color: {c['TEXT']}; padding: 4px 0; "
-                f"letter-spacing: 0.5px;"
+                f"font-size: 9px; color: {c['TEXT']}; "
+                f"letter-spacing: 1px;"
             )
         else:
             self.file_label.setStyleSheet(
-                f"font-size: 11px; color: {c['TEXT_DIM']}; padding: 4px 0; "
+                f"font-size: 9px; color: {c['TEXT_DIM']}; "
                 f"letter-spacing: 1px;"
             )
 
@@ -1296,20 +1288,19 @@ class MainWindow(QMainWindow):
         for cat in seen:
             color = CATEGORY_COLORS.get(cat, _c()["ACCENT"])
             label = CATEGORY_LABELS_TR.get(cat, cat)
-            count = sum(1 for e in self._entities if e.category == cat)
 
-            btn = QPushButton(f"{label} ({count})")
+            btn = QPushButton(label)
             btn.setCheckable(True)
             btn.setChecked(True)
-            btn.setFixedHeight(22)
+            btn.setFixedHeight(20)
             btn.setStyleSheet(
-                f"QPushButton {{ background: {color}55; color: #ffffff; "
-                f"border: 1px solid {color}88; "
-                f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
+                f"QPushButton {{ background: {color}22; color: {color}; "
+                f"border: 1px solid {color}55; "
+                f"border-radius: 2px; padding: 0 8px; font-size: 9px; "
                 f"font-weight: bold; letter-spacing: 0.5px; }}"
-                f"QPushButton:hover {{ background: {color}77; }}"
-                f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
-                f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
+                f"QPushButton:hover {{ background: {color}44; }}"
+                f"QPushButton:!checked {{ background: {_c()['BG_LIGHT']}; "
+                f"color: {_c()['TEXT_VDIM']}; border-color: {_c()['BORDER']}; }}"
             )
             btn.clicked.connect(
                 lambda checked, c=cat: self._on_category_toggled(c, checked)

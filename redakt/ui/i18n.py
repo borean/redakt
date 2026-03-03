@@ -41,7 +41,9 @@ _STRINGS = {
     "ask_placeholder": {"tr": "Belge hakkında soru sor...", "en": "Ask a question about the document..."},
     "scan_for_pii": {"tr": "KİŞİSEL VERİ TARA", "en": "SCAN FOR PII"},
     "age_based_dates": {"tr": "TARİHLERİ HASTA YAŞI OLARAK YAZ", "en": "AGE-BASED DATES"},
+    "age_short": {"tr": "YAŞ", "en": "AGE"},
     "export": {"tr": "DIŞA AKTAR:", "en": "EXPORT:"},
+    "export_short": {"tr": "DIŞA AKTAR", "en": "EXPORT"},
     "export_redacted": {"tr": "ANONİM DOSYA İNDİR", "en": "EXPORT REDACTED"},
     "lang": {"tr": "DİL:", "en": "LANG:"},
 

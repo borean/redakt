@@ -14,18 +14,25 @@ def _c():
 
 
 class StatusBar(QWidget):
-    """Simple status bar: Ready / Processing + LOCAL badge. No internal details."""
+    """Simple status bar: green dot + Ready/Processing + LOCAL badge."""
 
     def __init__(self):
         super().__init__()
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 4, 12, 4)
+        layout.setContentsMargins(12, 5, 12, 5)
 
         # Translatable status texts (updated via set_translations)
         self._t_ready = "READY"
         self._t_not_ready = "NOT READY"
         self._t_processing = "PROCESSING LOCALLY..."
         self._t_error = "ERROR"
+
+        # Status dot (6px green circle)
+        self._status_dot = QWidget()
+        self._status_dot.setFixedSize(6, 6)
+        layout.addWidget(self._status_dot)
+
+        layout.addSpacing(4)
 
         self._status_label = QLabel(self._t_ready)
         layout.addWidget(self._status_label)
@@ -40,17 +47,20 @@ class StatusBar(QWidget):
     def _apply_theme(self):
         """Apply current theme colors. Called on init and when theme changes."""
         c = _c()
+        self._status_dot.setStyleSheet(
+            f"background-color: {c['SUCCESS']}; border-radius: 3px;"
+        )
         self._status_label.setStyleSheet(
-            f"color: {c['TEXT_DIM']}; font-size: 10px; letter-spacing: 1px;"
+            f"color: {c['TEXT_DIM']}; font-size: 9px; letter-spacing: 1px;"
         )
         self._local_badge.setStyleSheet(
-            f"color: {c['SUCCESS']}; font-size: 9px; font-weight: bold; "
+            f"color: {c['SUCCESS']}; font-size: 8px; font-weight: bold; "
             f"letter-spacing: 1.5px; border: 1px solid {c['SUCCESS']}40; "
-            f"border-radius: 2px; padding: 2px 8px;"
+            f"border-radius: 2px; padding: 1px 6px;"
         )
         self.setStyleSheet(
             f"StatusBar {{ background-color: {c['BG_DARKEST']}; "
-            f"border: 1px solid {c['BORDER']}; border-radius: 2px; }}"
+            f"border-top: 1px solid {c['BORDER']}; }}"
         )
 
     def set_translations(self, *, ready: str, not_ready: str, processing: str, error: str):
@@ -64,14 +74,20 @@ class StatusBar(QWidget):
     def set_ready_status(self, running: bool):
         c = _c()
         if running:
+            self._status_dot.setStyleSheet(
+                f"background-color: {c['SUCCESS']}; border-radius: 3px;"
+            )
             self._status_label.setText(self._t_ready)
             self._status_label.setStyleSheet(
-                f"color: {c['SUCCESS']}; font-size: 10px; letter-spacing: 1px;"
+                f"color: {c['SUCCESS']}; font-size: 9px; letter-spacing: 1px;"
             )
         else:
+            self._status_dot.setStyleSheet(
+                f"background-color: {c['ERROR']}; border-radius: 3px;"
+            )
             self._status_label.setText(self._t_not_ready)
             self._status_label.setStyleSheet(
-                f"color: {c['ERROR']}; font-size: 10px; letter-spacing: 1px;"
+                f"color: {c['ERROR']}; font-size: 9px; letter-spacing: 1px;"
             )
 
     @Slot(bool)
@@ -79,14 +95,20 @@ class StatusBar(QWidget):
         """Show Processing when scanning, Ready when idle."""
         c = _c()
         if active:
+            self._status_dot.setStyleSheet(
+                f"background-color: {c['ACCENT']}; border-radius: 3px;"
+            )
             self._status_label.setText(self._t_processing)
             self._status_label.setStyleSheet(
-                f"color: {c['ACCENT']}; font-size: 10px; letter-spacing: 1px;"
+                f"color: {c['ACCENT']}; font-size: 9px; letter-spacing: 1px;"
             )
         else:
+            self._status_dot.setStyleSheet(
+                f"background-color: {c['SUCCESS']}; border-radius: 3px;"
+            )
             self._status_label.setText(self._t_ready)
             self._status_label.setStyleSheet(
-                f"color: {c['SUCCESS']}; font-size: 10px; letter-spacing: 1px;"
+                f"color: {c['SUCCESS']}; font-size: 9px; letter-spacing: 1px;"
             )
 
     @Slot(str)
@@ -94,9 +116,12 @@ class StatusBar(QWidget):
         """Ignore internal model/backend names — keep status simple."""
         if "failed" in status.lower() or "error" in status.lower():
             c = _c()
+            self._status_dot.setStyleSheet(
+                f"background-color: {c['ERROR']}; border-radius: 3px;"
+            )
             self._status_label.setText(self._t_error)
             self._status_label.setStyleSheet(
-                f"color: {c['ERROR']}; font-size: 10px; letter-spacing: 1px;"
+                f"color: {c['ERROR']}; font-size: 9px; letter-spacing: 1px;"
             )
 
     @Slot(str)

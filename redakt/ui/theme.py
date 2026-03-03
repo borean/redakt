@@ -4,11 +4,11 @@ Two independent axes:
 - **Color theme**: dark / light / system  (controls palette)
 - **UI style**: clinical / terminal  (controls typography and visual weight)
 
-Clinical (default) — designed for medical professionals:
+Clinical — designed for medical professionals:
   System sans-serif (SF Pro, Segoe UI, etc.), 13 px base, rounded corners,
   softer visual weight, generous padding.  Approachable, not intimidating.
 
-Terminal — designed for power users / developers:
+Terminal (default) — monospace, compact, matches manifesto demo:
   Monospace (SF Mono, Fira Code, etc.), 12 px base, minimal border-radius,
   compact padding, letter-spacing on labels.  The original Redakt look.
 """
@@ -515,11 +515,23 @@ QPushButton#secondary:hover {{
     color: {c["TEXT_PRIMARY"]};
     border-color: {c["BORDER_ACTIVE"]};
 }}
+
+/* ── Titlebar / Toolbar (manifesto demo layout) ──────────── */
+
+QWidget#titlebar {{
+    background-color: {c["BG_MID"]};
+    border: none;
+}}
+
+QWidget#toolbar {{
+    background-color: {c["BG_DARK"]};
+    border-bottom: 1px solid {c["BORDER"]};
+}}
 """
 
 
-DARK_STYLESHEET = _build_stylesheet(_DARK, "clinical")
-LIGHT_STYLESHEET = _build_stylesheet(_LIGHT, "clinical")
+DARK_STYLESHEET = _build_stylesheet(_DARK, "terminal")
+LIGHT_STYLESHEET = _build_stylesheet(_LIGHT, "terminal")
 
 
 class ThemeManager(QObject):
@@ -568,8 +580,8 @@ class ThemeManager(QObject):
     def get_ui_style(self) -> str:
         """Return stored UI style: 'clinical' or 'terminal'."""
         s = QSettings()
-        val = str(s.value(_KEY_UI_STYLE, "clinical"))
-        return val if val in ("clinical", "terminal") else "clinical"
+        val = str(s.value(_KEY_UI_STYLE, "terminal"))
+        return val if val in ("clinical", "terminal") else "terminal"
 
     def set_ui_style(self, value: str):
         """Persist UI style preference and emit theme_changed."""
