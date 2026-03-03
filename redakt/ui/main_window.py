@@ -36,11 +36,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from redakt.constants import Backend, SUPPORTED_EXTENSIONS, Language
+from redakt.constants import SUPPORTED_EXTENSIONS, Language
 from redakt.core.anonymizer import Anonymizer
 from redakt.core.entities import PIIEntity, PIIResponse
 from redakt.core.llamacpp_manager import LlamaCppManager
-from redakt.core.model_manager import ModelManager
 from redakt.core.redactor import (
     CATEGORY_COLORS,
     CATEGORY_LABELS_TR,
@@ -59,29 +58,35 @@ from redakt.parsers import get_parser
 from redakt.ui.i18n import t
 from redakt.ui.settings_dialog import SettingsDialog, load_settings, save_settings
 from redakt.ui.setup_wizard import SetupWizard
-from redakt.ui.status_bar import OllamaStatusBar
+from redakt.ui.status_bar import StatusBar
+from redakt.ui import theme as theme_module
 
-# ── Factory AI neutral dark theme ─────────────────────────────────────────
-_BG_DARKEST = "#111111"
-_BG_DARK = "#1a1a1a"
-_BG_MID = "#252525"
-_BG_LIGHT = "#303030"
-_BG_LIGHTER = "#3d3d3d"
-_BORDER = "#333333"
-_TEXT = "#d4d4d4"
-_TEXT_DIM = "#808080"
-_TEXT_VDIM = "#555555"
-_ACCENT = "#e78a4e"
-_ACCENT_DIM = "#c47a42"
-_ERROR = "#d46b6b"
-_WARNING = "#d4a04e"
-_SUCCESS = "#6bbd6b"
-_BLUE = "#7aabdb"
+# ── Theme colors (fallback when theme_manager not yet initialized) ─────────
+_DARK = {
+    "BG_DARKEST": "#111111", "BG_DARK": "#1a1a1a", "BG_MID": "#252525",
+    "BG_LIGHT": "#303030", "BG_LIGHTER": "#3d3d3d", "BORDER": "#333333",
+    "TEXT": "#d4d4d4", "TEXT_DIM": "#808080", "TEXT_VDIM": "#555555",
+    "ACCENT": "#e78a4e", "ACCENT_DIM": "#c47a42", "ERROR": "#d46b6b",
+    "WARNING": "#d4a04e", "SUCCESS": "#6bbd6b", "BLUE": "#7aabdb",
+}
+
+
+def _c() -> dict:
+    """Current theme colors."""
+    tm = getattr(theme_module, "theme_manager", None)
+    return tm.get_colors() if tm else _DARK
+
 
 _MONO = (
     "'SF Mono', 'Fira Code', 'JetBrains Mono', "
     "Menlo, Consolas, monospace"
 )
+
+
+def _font() -> str:
+    """Current UI font family from theme manager."""
+    tm = getattr(theme_module, "theme_manager", None)
+    return tm.get_font_family() if tm else _MONO
 
 
 class MainWindow(QMainWindow):
@@ -104,22 +109,16 @@ class MainWindow(QMainWindow):
         self._updating_table = False  # guard against recursive signals
         self._chat_history: list[dict] = []  # multi-turn chat history
         self._original_placeholders: dict[str, str] = {}
+        self._birth_date_text: str | None = None
         self._is_image: bool = False
 
         # ── Managers ──
-        self.model_manager = ModelManager()
         self.llamacpp_manager = LlamaCppManager()
         self.anonymizer = Anonymizer()
         self._workers: list[AsyncWorker] = []
 
         # Load persisted settings
         saved = load_settings()
-        try:
-            self.anonymizer.backend = Backend(saved["backend"])
-        except (ValueError, KeyError):
-            pass
-        if saved["model"]:
-            self.anonymizer.model = saved["model"]
         if saved["gguf_path"]:
             from pathlib import Path as _P
             gguf_p = _P(saved["gguf_path"])
@@ -136,22 +135,18 @@ class MainWindow(QMainWindow):
     # ── UI Construction ──────────────────────────────────────────────
 
     @staticmethod
-    def _tech_label(text: str, color: str = _TEXT_DIM) -> QLabel:
-        """Create a tech-style section label."""
+    def _tech_label(text: str, color: str | None = None) -> QLabel:
+        """Create a tech-style section label (styled via #sectionLabel in stylesheet)."""
         lbl = QLabel(text.upper())
-        lbl.setStyleSheet(
-            f"font-size: 10px; font-weight: bold; color: {color}; "
-            f"letter-spacing: 2px; padding: 2px 0;"
-        )
+        lbl.setObjectName("sectionLabel")
+        if color:
+            lbl.setStyleSheet(f"color: {color};")
         return lbl
 
     @staticmethod
     def _section_hint(text: str) -> QLabel:
         lbl = QLabel(text)
-        lbl.setStyleSheet(
-            "font-size: 9px; color: #555555; "
-            "padding: 0 0 2px 0; font-style: italic;"
-        )
+        lbl.setObjectName("sectionHint")
         lbl.setWordWrap(True)
         return lbl
 
@@ -168,26 +163,21 @@ class MainWindow(QMainWindow):
         # Title with cyber glow
         title = QLabel("REDAKT")
         title.setStyleSheet(
-            f"font-size: 22px; font-weight: bold; color: {_ACCENT}; "
+            f"font-size: 22px; font-weight: bold; color: {_c()["ACCENT"]}; "
             f"letter-spacing: 6px;"
         )
         top.addWidget(title)
 
         subtitle = QLabel("LOCAL DE-IDENTIFICATION")
         subtitle.setStyleSheet(
-            f"font-size: 11px; color: {_TEXT_DIM}; letter-spacing: 3px; "
+            f"font-size: 11px; color: {_c()["TEXT_DIM"]}; letter-spacing: 3px; "
             f"padding-top: 8px;"
         )
         top.addWidget(subtitle)
 
         top.addStretch()
         self.settings_btn = QPushButton("CONFIG")
-        self.settings_btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {_TEXT_DIM}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; "
-            f"padding: 4px 14px; font-size: 10px; letter-spacing: 1px; }}"
-            f"QPushButton:hover {{ color: {_TEXT}; border-color: {_TEXT_DIM}; }}"
-        )
+        self.settings_btn.setObjectName("secondary")
         self.settings_btn.setToolTip("Configure model, backend, and language settings")
         self.settings_btn.clicked.connect(self._open_settings)
         top.addWidget(self.settings_btn)
@@ -198,7 +188,7 @@ class MainWindow(QMainWindow):
         line.setFixedHeight(1)
         line.setStyleSheet(
             f"background: qlineargradient(x1:0, x2:1, "
-            f"stop:0 {_TEXT_DIM}, stop:0.5 {_TEXT_DIM}44, stop:1 transparent);"
+            f"stop:0 {_c()["TEXT_DIM"]}, stop:0.5 {_c()["TEXT_DIM"]}44, stop:1 transparent);"
         )
         root.addWidget(line)
 
@@ -206,7 +196,7 @@ class MainWindow(QMainWindow):
         file_bar = QHBoxLayout()
         self.file_label = QLabel("NO FILE LOADED")
         self.file_label.setStyleSheet(
-            f"font-size: 11px; color: {_TEXT_DIM}; padding: 4px 0; "
+            f"font-size: 11px; color: {_c()["TEXT_DIM"]}; padding: 4px 0; "
             f"letter-spacing: 1px;"
         )
         file_bar.addWidget(self.file_label, stretch=1)
@@ -223,10 +213,7 @@ class MainWindow(QMainWindow):
         self._workflow_hint = QLabel(
             "1. Open file  \u2192  2. Scan for PII  \u2192  3. Review & toggle  \u2192  4. Export"
         )
-        self._workflow_hint.setStyleSheet(
-            f"font-size: 10px; color: {_TEXT_VDIM}; letter-spacing: 1px; "
-            f"padding: 2px 0; font-family: {_MONO};"
-        )
+        self._workflow_hint.setObjectName("sectionHint")
         self._workflow_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._workflow_hint.setWordWrap(True)
         root.addWidget(self._workflow_hint)
@@ -250,11 +237,6 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self._left_hint)
         self.original_view = QTextBrowser()
         self.original_view.setOpenExternalLinks(False)
-        self.original_view.setStyleSheet(
-            f"QTextBrowser {{ background-color: {_BG_MID}; color: {_TEXT}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; padding: 12px; "
-            f"font-size: 12px; font-family: {_MONO}; }}"
-        )
         left_layout.addWidget(self.original_view)
         text_splitter.addWidget(left)
 
@@ -271,11 +253,6 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self._right_hint)
         self.redacted_view = QTextBrowser()
         self.redacted_view.setOpenExternalLinks(False)
-        self.redacted_view.setStyleSheet(
-            f"QTextBrowser {{ background-color: {_BG_DARKEST}; color: {_TEXT}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; padding: 12px; "
-            f"font-size: 12px; font-family: {_MONO}; }}"
-        )
         right_layout.addWidget(self.redacted_view)
         text_splitter.addWidget(right)
 
@@ -303,26 +280,16 @@ class MainWindow(QMainWindow):
 
         # Select All / None buttons
         self.select_all_btn = QPushButton("SELECT ALL")
+        self.select_all_btn.setObjectName("secondary")
         self.select_all_btn.setFixedHeight(22)
-        self.select_all_btn.setStyleSheet(
-            f"QPushButton {{ background: {_BG_LIGHT}; color: {_TEXT_DIM}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; "
-            f"font-size: 9px; letter-spacing: 1px; }}"
-            f"QPushButton:hover {{ color: {_TEXT}; border-color: {_TEXT_DIM}; }}"
-        )
         self.select_all_btn.setToolTip("Enable all detected entities for redaction")
         self.select_all_btn.clicked.connect(self._select_all)
         self.select_all_btn.setVisible(False)
         header_row.addWidget(self.select_all_btn)
 
         self.select_none_btn = QPushButton("SELECT NONE")
+        self.select_none_btn.setObjectName("secondary")
         self.select_none_btn.setFixedHeight(22)
-        self.select_none_btn.setStyleSheet(
-            f"QPushButton {{ background: {_BG_LIGHT}; color: {_TEXT_DIM}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; "
-            f"font-size: 9px; letter-spacing: 1px; }}"
-            f"QPushButton:hover {{ color: {_ERROR}; border-color: {_ERROR}; }}"
-        )
         self.select_none_btn.setToolTip("Disable all entities (nothing will be redacted)")
         self.select_none_btn.clicked.connect(self._select_none)
         self.select_none_btn.setVisible(False)
@@ -337,7 +304,11 @@ class MainWindow(QMainWindow):
         # Entity table: checkbox | # | Original | Category | Placeholder | Conf
         self.entity_table = QTableWidget(0, 6)
         self.entity_table.setHorizontalHeaderLabels(
-            ["", "#", "ORIGINAL", "TYPE", "REPLACEMENT", "CONF"]
+            ["", "#",
+             t("col_original", self._lang),
+             t("col_type", self._lang),
+             t("col_replacement", self._lang),
+             t("col_conf", self._lang)]
         )
         hdr = self.entity_table.horizontalHeader()
         hdr.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
@@ -372,13 +343,8 @@ class MainWindow(QMainWindow):
         chat_header.addStretch()
 
         self.clear_chat_btn = QPushButton("CLEAR CHAT")
+        self.clear_chat_btn.setObjectName("secondary")
         self.clear_chat_btn.setFixedHeight(22)
-        self.clear_chat_btn.setStyleSheet(
-            f"QPushButton {{ background: {_BG_LIGHT}; color: {_TEXT_DIM}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; "
-            f"padding: 0 12px; font-size: 10px; letter-spacing: 0.5px; }}"
-            f"QPushButton:hover {{ color: {_ERROR}; border-color: {_ERROR}; }}"
-        )
         self.clear_chat_btn.setToolTip("Clear conversation history")
         self.clear_chat_btn.clicked.connect(self._clear_chat)
         chat_header.addWidget(self.clear_chat_btn)
@@ -392,11 +358,6 @@ class MainWindow(QMainWindow):
         # Chat message display
         self.chat_view = QTextBrowser()
         self.chat_view.setOpenExternalLinks(False)
-        self.chat_view.setStyleSheet(
-            f"QTextBrowser {{ background-color: {_BG_DARKEST}; color: {_TEXT}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; padding: 10px; "
-            f"font-size: 12px; font-family: {_MONO}; }}"
-        )
         self.chat_view.setHtml("")  # placeholder set by _relabel_ui / _set_ui_state
         chat_layout.addWidget(self.chat_view)
 
@@ -406,25 +367,12 @@ class MainWindow(QMainWindow):
 
         self.chat_input = QLineEdit()
         self.chat_input.setPlaceholderText("Ask a question about the document...")
-        self.chat_input.setStyleSheet(
-            f"QLineEdit {{ background-color: {_BG_LIGHT}; color: {_TEXT}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; "
-            f"padding: 6px 10px; font-size: 12px; font-family: {_MONO}; }}"
-            f"QLineEdit:focus {{ border-color: {_BLUE}; }}"
-        )
         self.chat_input.returnPressed.connect(self._send_chat_message)
         self.chat_input.setEnabled(False)
         chat_input_row.addWidget(self.chat_input)
 
         self.send_btn = QPushButton("SEND")
         self.send_btn.setMinimumSize(70, 30)
-        self.send_btn.setStyleSheet(
-            f"QPushButton {{ background: {_BG_LIGHTER}; color: {_TEXT}; "
-            f"border: none; border-radius: 2px; font-size: 10px; "
-            f"font-weight: bold; letter-spacing: 1px; }}"
-            f"QPushButton:hover {{ background: {_TEXT_DIM}; }}"
-            f"QPushButton:disabled {{ background: {_BG_LIGHT}; color: {_TEXT_VDIM}; }}"
-        )
         self.send_btn.setToolTip("Send your question to the AI")
         self.send_btn.clicked.connect(self._send_chat_message)
         self.send_btn.setEnabled(False)
@@ -432,8 +380,9 @@ class MainWindow(QMainWindow):
 
         chat_layout.addLayout(chat_input_row)
         self.main_splitter.addWidget(self.chat_panel)
+        self.chat_panel.setVisible(False)  # Hidden: single-function app, no talk-to-document
 
-        self.main_splitter.setSizes([400, 180, 200])
+        self.main_splitter.setSizes([500, 250, 0])  # More space for doc + redaction
         self.main_splitter.setChildrenCollapsible(False)
         root.addWidget(self.main_splitter, stretch=1)
 
@@ -450,9 +399,7 @@ class MainWindow(QMainWindow):
         controls.setSpacing(10)
 
         self._lang_label = QLabel("LANG:")
-        self._lang_label.setStyleSheet(
-            f"font-size: 10px; color: {_TEXT_DIM}; letter-spacing: 1px;"
-        )
+        self._lang_label.setObjectName("sectionLabel")
         controls.addWidget(self._lang_label)
         self.lang_combo = QComboBox()
         self.lang_combo.addItem("TR", Language.TR)
@@ -464,12 +411,6 @@ class MainWindow(QMainWindow):
         controls.addSpacing(8)
 
         self.age_mode_cb = QCheckBox("AGE-BASED DATES")
-        self.age_mode_cb.setStyleSheet(
-            f"QCheckBox {{ color: {_TEXT_DIM}; font-size: 10px; letter-spacing: 0.5px; }}"
-            f"QCheckBox::indicator {{ width: 14px; height: 14px; }}"
-            f"QCheckBox::indicator:checked {{ background: {_ACCENT}; border: 2px solid {_ACCENT}; border-radius: 2px; }}"
-            f"QCheckBox::indicator:unchecked {{ background: {_BG_MID}; border: 2px solid {_BG_LIGHTER}; border-radius: 2px; }}"
-        )
         self.age_mode_cb.setToolTip(
             "When a birth date is found, replace other dates with patient age "
             "(e.g., 'at age 3.5 yrs'). Useful for pediatric documents."
@@ -477,6 +418,33 @@ class MainWindow(QMainWindow):
         self.age_mode_cb.setChecked(False)
         self.age_mode_cb.toggled.connect(self._on_age_mode_toggled)
         controls.addWidget(self.age_mode_cb)
+
+        # Birth date display (shown when age conversion used a birth date)
+        self._birth_date_label = QLabel()
+        self._birth_date_label.setStyleSheet(
+            f"font-size: 10px; color: {_c()['TEXT_DIM']}; letter-spacing: 0.5px;"
+        )
+        self._birth_date_value = QLabel()
+        self._birth_date_value.setStyleSheet(
+            f"font-size: 10px; color: {_c()['TEXT']}; font-weight: 600;"
+        )
+        self._change_birth_btn = QPushButton()
+        self._change_birth_btn.setStyleSheet(
+            f"QPushButton {{ background: transparent; color: {_c()['ACCENT']}; "
+            f"font-size: 10px; border: none; padding: 2px 6px; }}"
+            f"QPushButton:hover {{ text-decoration: underline; }}"
+        )
+        self._change_birth_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._change_birth_btn.clicked.connect(self._on_change_birth_date)
+        self._birth_date_widget = QWidget()
+        birth_layout = QHBoxLayout(self._birth_date_widget)
+        birth_layout.setContentsMargins(8, 0, 0, 0)
+        birth_layout.setSpacing(6)
+        birth_layout.addWidget(self._birth_date_label)
+        birth_layout.addWidget(self._birth_date_value)
+        birth_layout.addWidget(self._change_birth_btn)
+        self._birth_date_widget.setVisible(False)
+        controls.addWidget(self._birth_date_widget)
 
         controls.addSpacing(8)
 
@@ -490,30 +458,10 @@ class MainWindow(QMainWindow):
 
         controls.addSpacing(12)
 
-        # ── Model/backend indicator (clickable to open settings) ──
-        _initial_label = (
-            "Qwen3.5 // llama.cpp"
-            if self.anonymizer.backend == Backend.LLAMACPP
-            else "Qwen3 // ollama"
-        )
-        self.model_label = QPushButton(_initial_label)
-        self.model_label.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {_TEXT_DIM}; "
-            f"border: 1px solid {_BORDER}; border-radius: 2px; "
-            f"padding: 4px 12px; font-size: 10px; letter-spacing: 0.5px; "
-            f"font-family: {_MONO}; }}"
-            f"QPushButton:hover {{ color: {_TEXT}; border-color: {_TEXT_DIM}; }}"
-        )
-        self.model_label.setToolTip("Click to open model and backend settings")
-        self.model_label.clicked.connect(self._open_settings)
-        controls.addWidget(self.model_label)
-
         controls.addStretch()
 
         self._export_label = QLabel("EXPORT:")
-        self._export_label.setStyleSheet(
-            f"font-size: 10px; color: {_TEXT_DIM}; letter-spacing: 1px;"
-        )
+        self._export_label.setObjectName("sectionLabel")
         controls.addWidget(self._export_label)
         self.format_combo = QComboBox()
         for fmt in EXPORT_FORMATS:
@@ -529,7 +477,7 @@ class MainWindow(QMainWindow):
         root.addLayout(controls)
 
         # ── Status bar ──
-        self.status_bar = OllamaStatusBar()
+        self.status_bar = StatusBar()
         root.addWidget(self.status_bar)
 
         # Apply initial localization
@@ -577,6 +525,15 @@ class MainWindow(QMainWindow):
         if not self._entities:
             self.table_label.setText(t("detected_pii", lang))
 
+        # Entity table headers
+        self.entity_table.setHorizontalHeaderLabels(
+            ["", "#",
+             t("col_original", lang),
+             t("col_type", lang),
+             t("col_replacement", lang),
+             t("col_conf", lang)]
+        )
+
         # Select All / None buttons
         self.select_all_btn.setText(t("select_all", lang))
         self.select_all_btn.setToolTip(t("tip_select_all", lang))
@@ -597,22 +554,18 @@ class MainWindow(QMainWindow):
         self.scan_btn.setToolTip(t("tip_scan", lang))
         self.age_mode_cb.setText(t("age_based_dates", lang))
         self.age_mode_cb.setToolTip(t("tip_age_mode", lang))
+        if self._birth_date_text:
+            self._birth_date_label.setText(t("birth_date_label", lang))
+            self._change_birth_btn.setText(t("change_birth_date", lang))
+            self._change_birth_btn.setToolTip(t("tip_change_birth_date", lang))
         self._export_label.setText(t("export", lang))
         self.export_btn.setText(t("export_redacted", lang))
         self.export_btn.setToolTip(t("tip_export", lang))
-        self.model_label.setToolTip(t("tip_model_label", lang))
+        self.status_bar.set_local_badge(t("status_local_badge", lang))
 
     def _connect_signals(self):
-        self.model_manager.ollama_status_changed.connect(
-            self.status_bar.set_ollama_status
-        )
-        self.model_manager.model_status_changed.connect(
-            self.status_bar.set_model_status
-        )
-        self.model_manager.error_occurred.connect(self._show_error)
-        self.model_manager.model_ready.connect(self._on_model_ready)
-
         self.llamacpp_manager.server_ready.connect(self._on_model_ready)
+        self.llamacpp_manager.error_occurred.connect(self._show_error)
         self.llamacpp_manager.error_occurred.connect(self._show_error)
 
         self._sig_scan_status.connect(self._slot_scan_status)
@@ -628,12 +581,12 @@ class MainWindow(QMainWindow):
             self.send_btn.setEnabled(False)
             lang = self._lang
             self.original_view.setHtml(
-                f'<p style="color: {_TEXT_VDIM}; font-size: 13px; text-align: center; '
+                f'<p style="color: {_c()["TEXT_VDIM"]}; font-size: 13px; text-align: center; '
                 f"padding-top: 60px; font-family: {_MONO}; letter-spacing: 1px;\">"
                 f"{t('drop_here', lang)}</p>"
             )
             self.redacted_view.setHtml(
-                f'<p style="color: {_TEXT_VDIM}; font-size: 13px; text-align: center; '
+                f'<p style="color: {_c()["TEXT_VDIM"]}; font-size: 13px; text-align: center; '
                 f"padding-top: 60px; font-family: {_MONO}; letter-spacing: 1px;\">"
                 f"{t('scan_to_preview', lang)}</p>"
             )
@@ -651,7 +604,7 @@ class MainWindow(QMainWindow):
             self.chat_input.setEnabled(self._model_ready)
             self.send_btn.setEnabled(self._model_ready)
             self.redacted_view.setHtml(
-                f'<p style="color: {_TEXT_VDIM}; font-size: 13px; text-align: center; '
+                f'<p style="color: {_c()["TEXT_VDIM"]}; font-size: 13px; text-align: center; '
                 f"padding-top: 60px; font-family: {_MONO}; letter-spacing: 1px;\">"
                 f"{t('click_scan', lang)}</p>"
             )
@@ -687,34 +640,59 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
     def _run_setup_wizard(self):
-        wizard = SetupWizard(
-            self.model_manager, self.llamacpp_manager, parent=self
-        )
+        wizard = SetupWizard(self.llamacpp_manager, parent=self)
         wizard.setup_complete.connect(self._on_model_ready)
-        wizard.backend_selected.connect(self._on_backend_selected)
         wizard.exec()
 
-    @Slot(str)
-    def _on_backend_selected(self, backend_value: str):
-        backend = Backend(backend_value)
-        self.anonymizer.backend = backend
-        if backend == Backend.LLAMACPP:
-            self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
-            self.model_label.setText("Qwen3.5 // llama.cpp")
+    @Slot()
+    def _on_theme_changed(self):
+        """Refresh UI when theme changes (e.g. from settings)."""
+        c = _c()
+
+        # File label
+        if self._current_file:
+            self.file_label.setStyleSheet(
+                f"font-size: 11px; color: {c['TEXT']}; padding: 4px 0; "
+                f"letter-spacing: 0.5px;"
+            )
         else:
-            self.status_bar.set_model_status("READY")
-            self.model_label.setText("Qwen3 // ollama")
+            self.file_label.setStyleSheet(
+                f"font-size: 11px; color: {c['TEXT_DIM']}; padding: 4px 0; "
+                f"letter-spacing: 1px;"
+            )
+
+        # Birth date widgets
+        self._birth_date_label.setStyleSheet(
+            f"font-size: 10px; color: {c['TEXT_DIM']}; letter-spacing: 0.5px;"
+        )
+        self._birth_date_value.setStyleSheet(
+            f"font-size: 10px; color: {c['TEXT']}; font-weight: 600;"
+        )
+        self._change_birth_btn.setStyleSheet(
+            f"QPushButton {{ background: transparent; color: {c['ACCENT']}; "
+            f"font-size: 10px; border: none; padding: 2px 6px; }}"
+            f"QPushButton:hover {{ text-decoration: underline; }}"
+        )
+
+        # Refresh content views
+        if self._current_file:
+            if self._entities:
+                self._refresh_views()
+            else:
+                self._set_ui_state("file_loaded")
+        else:
+            self._set_ui_state("empty")
+        self._clear_chat()
+
+        # Status bar
+        if hasattr(self, "status_bar") and hasattr(self.status_bar, "_apply_theme"):
+            self.status_bar._apply_theme()
 
     @Slot()
     def _on_model_ready(self):
         self._model_ready = True
-        self.status_bar.set_ollama_status(True)
-        if self.anonymizer.backend == Backend.LLAMACPP:
-            self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
-            self.model_label.setText("Qwen3.5 // llama.cpp")
-        else:
-            self.status_bar.set_model_status("READY")
-            self.model_label.setText("Qwen3 // ollama")
+        self.status_bar.set_ready_status(True)
+        self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
         if self._current_file:
             self.scan_btn.setEnabled(True)
             self.chat_input.setEnabled(True)
@@ -734,8 +712,9 @@ class MainWindow(QMainWindow):
                 self._load_file(path)
             else:
                 self._show_error(
-                    f"Unsupported file type: {path.suffix}\n\n"
-                    f"Supported: {', '.join(sorted(SUPPORTED_EXTENSIONS))}"
+                    t("unsupported_file", self._lang,
+                      ext=path.suffix,
+                      supported=", ".join(sorted(SUPPORTED_EXTENSIONS)))
                 )
 
     @Slot()
@@ -743,9 +722,9 @@ class MainWindow(QMainWindow):
         exts = " ".join(f"*{e}" for e in sorted(SUPPORTED_EXTENSIONS))
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Open Medical Document",
+            t("open_document", self._lang),
             str(Path.home() / "Desktop"),
-            f"Supported Files ({exts});;All Files (*)",
+            t("file_filter", self._lang, exts=exts),
         )
         if path:
             self._load_file(Path(path))
@@ -755,7 +734,7 @@ class MainWindow(QMainWindow):
             parser = get_parser(path)
             result = parser.extract_text(path)
         except Exception as e:
-            self._show_error(f"Failed to read file:\n{e}")
+            self._show_error(t("file_read_failed", self._lang, error=e))
             return
 
         self._current_file = path
@@ -765,36 +744,38 @@ class MainWindow(QMainWindow):
         self._spans = []
         self._entity_enabled = []
         self._chat_history = []
+        self._birth_date_text = None
+        self._update_birth_date_display()
 
         lang = self._lang
         if self._is_image:
             char_count = 0
-            self.file_label.setText(f"{path.name}  |  IMAGE")
+            self.file_label.setText(t("file_image", lang, name=path.name))
             self.file_label.setStyleSheet(
-                f"font-size: 11px; color: {_TEXT}; padding: 4px 0; "
+                f"font-size: 11px; color: {_c()["TEXT"]}; padding: 4px 0; "
                 f"letter-spacing: 0.5px;"
             )
             self.left_label.setText(t("document_text", lang))
             img_msg = t("image_file_loaded", lang, name=_html.escape(path.name))
             parts = img_msg.split("\n\n", 1)
             self.original_view.setHtml(
-                f'<p style="color: {_TEXT_DIM}; font-size: 13px; text-align: center; '
+                f'<p style="color: {_c()["TEXT_DIM"]}; font-size: 13px; text-align: center; '
                 f"padding-top: 40px; font-family: {_MONO}; letter-spacing: 1px;\">"
                 f"{_html.escape(parts[0])}<br><br>"
-                f'<span style="color: {_TEXT_VDIM};">'
+                f'<span style="color: {_c()["TEXT_VDIM"]};">'
                 f"{_html.escape(parts[1]) if len(parts) > 1 else ''}</span></p>"
             )
         else:
             char_count = len(result.text)
             self.file_label.setText(
-                f"{path.name}  |  {char_count:,} chars"
+                t("file_chars", lang, name=path.name, count=f"{char_count:,}")
             )
             self.file_label.setStyleSheet(
-                f"font-size: 11px; color: {_TEXT}; padding: 4px 0; "
+                f"font-size: 11px; color: {_c()["TEXT"]}; padding: 4px 0; "
                 f"letter-spacing: 0.5px;"
             )
             self.left_label.setText(
-                f"{t('document_text', lang)}  ({char_count:,} chars)"
+                t("doc_text_chars", lang, count=f"{char_count:,}")
             )
             self.original_view.setPlainText(result.text)
 
@@ -804,10 +785,10 @@ class MainWindow(QMainWindow):
         chat_msg = t("file_loaded_chat", lang, name=_html.escape(path.name))
         chat_lines = chat_msg.split("\n", 1)
         self.chat_view.setHtml(
-            f'<p style="color: {_TEXT_DIM}; font-size: 11px; '
+            f'<p style="color: {_c()["TEXT_DIM"]}; font-size: 11px; '
             f"font-family: {_MONO}; letter-spacing: 0.5px;\">"
             f"{chat_lines[0]}<br>"
-            f'<span style="color: {_TEXT_DIM};">'
+            f'<span style="color: {_c()["TEXT_DIM"]};">'
             f"{chat_lines[1] if len(chat_lines) > 1 else ''}</span></p>"
         )
 
@@ -820,6 +801,8 @@ class MainWindow(QMainWindow):
         self._spans = []
         self._entity_enabled = []
         self._chat_history = []
+        self._birth_date_text = None
+        self._update_birth_date_display()
         self._set_ui_state("empty")
 
     # ── PII Scanning ─────────────────────────────────────────────────
@@ -886,15 +869,43 @@ class MainWindow(QMainWindow):
 
         if self._is_image and not self._extracted_text:
             # For images: generate display text from entities
-            lines = [f"PII detected in image ({len(self._entities)} entities):", ""]
+            lang = self._lang
+            lines = [t("pii_in_image", lang, count=len(self._entities)), ""]
             for e in self._entities:
                 lines.append(f"  [{e.category.upper()}] {e.original}")
             self._extracted_text = "\n".join(lines)
             self.original_view.setPlainText(self._extracted_text)
-            self.left_label.setText(f"DETECTED TEXT  ({len(self._entities)} entities)")
+            self.left_label.setText(
+                t("detected_text_count", lang, count=len(self._entities))
+            )
 
         self._spans = find_entity_spans(self._extracted_text, self._entities)
         self._entity_enabled = [True] * len(self._entities)
+
+        # Auto-apply age conversion when birth date is found (decimal ages instead of redacted dates)
+        self._original_placeholders = {
+            e.original: e.placeholder for e in self._entities if e.category == "date"
+        }
+        _, self._birth_date_text = self.anonymizer._apply_age_conversion(
+            self._entities, self._extracted_text
+        )
+        any_age_converted = any(
+            e.category == "date" and not e.placeholder.startswith("[")
+            for e in self._entities
+        )
+        if any_age_converted:
+            self.age_mode_cb.blockSignals(True)
+            self.age_mode_cb.setChecked(True)
+            self.age_mode_cb.blockSignals(False)
+            self._spans = find_entity_spans(self._extracted_text, self._entities)
+        else:
+            for e in self._entities:
+                if e.original in self._original_placeholders:
+                    e.placeholder = self._original_placeholders[e.original]
+            self._original_placeholders.clear()
+            self._birth_date_text = None
+
+        self._update_birth_date_display()
 
         # Build category chips + table + views
         self._build_category_chips()
@@ -906,7 +917,7 @@ class MainWindow(QMainWindow):
     def _on_scan_error(self, error: str):
         self.status_bar.set_active_inference(False)
         self._set_ui_state("error")
-        self._show_error(f"Scan failed:\n{error}")
+        self._show_error(t("scan_failed", self._lang, error=error))
 
     @Slot(str)
     def _slot_scan_status(self, msg: str):
@@ -931,7 +942,7 @@ class MainWindow(QMainWindow):
             }
 
             # First: try fully automatic detection (no dialog)
-            self.anonymizer._apply_age_conversion(
+            _, self._birth_date_text = self.anonymizer._apply_age_conversion(
                 self._entities, self._extracted_text
             )
 
@@ -957,19 +968,45 @@ class MainWindow(QMainWindow):
                     return
 
                 # Re-apply with user-selected birth date
-                self.anonymizer._apply_age_conversion(
+                _, self._birth_date_text = self.anonymizer._apply_age_conversion(
                     self._entities, self._extracted_text,
                     birth_date_text=birth_text,
                 )
 
         else:
-            # Restore original placeholders
-            for e in self._entities:
-                if e.original in self._original_placeholders:
-                    e.placeholder = self._original_placeholders[e.original]
-            self._original_placeholders.clear()
+            # Toggle off: display only — keep age placeholders, render will show blocks
+            pass
+
+        self._update_birth_date_display()
 
         # Rebuild spans and refresh all views
+        self._spans = find_entity_spans(self._extracted_text, self._entities)
+        self._populate_entity_table()
+        self._refresh_views()
+
+    def _update_birth_date_display(self):
+        """Show or hide birth date widget based on whether we have an accepted birth date."""
+        if self._birth_date_text:
+            self._birth_date_label.setText(t("birth_date_label", self._lang))
+            self._birth_date_value.setText(self._birth_date_text)
+            self._change_birth_btn.setText(t("change_birth_date", self._lang))
+            self._change_birth_btn.setToolTip(t("tip_change_birth_date", self._lang))
+            self._birth_date_widget.setVisible(True)
+        else:
+            self._birth_date_widget.setVisible(False)
+
+    def _on_change_birth_date(self):
+        """Let user pick a different birth date and re-apply age conversion."""
+        birth_text = self._show_birth_date_dialog()
+        if not birth_text:
+            return
+        self._original_placeholders = {
+            e.original: e.placeholder for e in self._entities if e.category == "date"
+        }
+        _, self._birth_date_text = self.anonymizer._apply_age_conversion(
+            self._entities, self._extracted_text, birth_date_text=birth_text
+        )
+        self._update_birth_date_display()
         self._spans = find_entity_spans(self._extracted_text, self._entities)
         self._populate_entity_table()
         self._refresh_views()
@@ -1002,19 +1039,19 @@ class MainWindow(QMainWindow):
         dlg.setWindowTitle(t("select_birth_date", self._lang))
         dlg.setMinimumWidth(340)
         dlg.setStyleSheet(
-            f"QDialog {{ background: {_BG_DARK}; }}"
-            f"QLabel {{ color: {_TEXT}; font-size: 12px; }}"
-            f"QComboBox {{ background: {_BG_LIGHT}; color: {_TEXT}; "
-            f"  border: 1px solid {_BORDER}; border-radius: 2px; "
+            f"QDialog {{ background: {_c()["BG_DARK"]}; }}"
+            f"QLabel {{ color: {_c()["TEXT"]}; font-size: 12px; }}"
+            f"QComboBox {{ background: {_c()["BG_LIGHT"]}; color: {_c()["TEXT"]}; "
+            f"  border: 1px solid {_c()["BORDER"]}; border-radius: 2px; "
             f"  padding: 5px 8px; font-size: 12px; min-height: 22px; }}"
             f"QComboBox::drop-down {{ border: none; }}"
-            f"QComboBox QAbstractItemView {{ background: {_BG_MID}; "
-            f"  color: {_TEXT}; selection-background-color: {_ACCENT}; "
-            f"  border: 1px solid {_BORDER}; }}"
-            f"QPushButton {{ background: {_BG_LIGHT}; color: {_TEXT_DIM}; "
-            f"  border: 1px solid {_BORDER}; border-radius: 2px; "
+            f"QComboBox QAbstractItemView {{ background: {_c()["BG_MID"]}; "
+            f"  color: {_c()["TEXT"]}; selection-background-color: {_c()["ACCENT"]}; "
+            f"  border: 1px solid {_c()["BORDER"]}; }}"
+            f"QPushButton {{ background: {_c()["BG_LIGHT"]}; color: {_c()["TEXT_DIM"]}; "
+            f"  border: 1px solid {_c()["BORDER"]}; border-radius: 2px; "
             f"  padding: 6px 18px; font-size: 11px; letter-spacing: 0.5px; }}"
-            f"QPushButton:hover {{ color: {_TEXT}; border-color: {_TEXT_DIM}; }}"
+            f"QPushButton:hover {{ color: {_c()["TEXT"]}; border-color: {_c()["TEXT_DIM"]}; }}"
         )
 
         layout = QVBoxLayout(dlg)
@@ -1059,18 +1096,18 @@ class MainWindow(QMainWindow):
         self.chat_input.setEnabled(False)
         self.send_btn.setEnabled(False)
         self.progress_bar.setVisible(True)
-        self.status_bar.set_model_status("THINKING...")
+        self.status_bar.set_model_status(t("chat_thinking", self._lang))
 
         self.anonymizer.language = self.lang_combo.currentData()
 
         # Show user question in chat
         self._append_chat_html(
             f'<div style="margin: 6px 0; padding: 6px 12px; '
-            f"background-color: {_BG_MID}; border-left: 3px solid {_TEXT_DIM}; "
+            f"background-color: {_c()["BG_MID"]}; border-left: 3px solid {_c()["TEXT_DIM"]}; "
             f'border-radius: 2px;">'
-            f'<span style="color: {_TEXT_DIM}; font-size: 10px; letter-spacing: 1px; '
-            f'font-weight: bold;">YOU</span><br>'
-            f'<span style="color: {_TEXT};">{_html.escape(question)}</span></div>'
+            f'<span style="color: {_c()["TEXT_DIM"]}; font-size: 10px; letter-spacing: 1px; '
+            f'font-weight: bold;">{t("chat_you", self._lang)}</span><br>'
+            f'<span style="color: {_c()["TEXT"]};">{_html.escape(question)}</span></div>'
         )
 
         worker = AsyncWorker(
@@ -1093,10 +1130,7 @@ class MainWindow(QMainWindow):
         self.send_btn.setEnabled(True)
         self.progress_bar.setVisible(False)
 
-        if self.anonymizer.backend == Backend.LLAMACPP:
-            self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
-        else:
-            self.status_bar.set_model_status("READY")
+        self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
 
         # Store in conversation history for multi-turn
         self._chat_history.append({"role": "user", "content": question})
@@ -1109,10 +1143,10 @@ class MainWindow(QMainWindow):
         rendered = render_markdown(answer)
         self._append_chat_html(
             f'<div style="margin: 6px 0; padding: 8px 12px; '
-            f"background-color: {_BG_MID}; border-left: 3px solid {_TEXT_DIM}; "
+            f"background-color: {_c()["BG_MID"]}; border-left: 3px solid {_c()["TEXT_DIM"]}; "
             f'border-radius: 2px;">'
-            f'<span style="color: {_TEXT_DIM}; font-size: 10px; letter-spacing: 1px; '
-            f'font-weight: bold;">AI</span><br>'
+            f'<span style="color: {_c()["TEXT_DIM"]}; font-size: 10px; letter-spacing: 1px; '
+            f'font-weight: bold;">{t("chat_ai", self._lang)}</span><br>'
             f"{rendered}</div>"
         )
 
@@ -1123,15 +1157,12 @@ class MainWindow(QMainWindow):
         self.send_btn.setEnabled(True)
         self.progress_bar.setVisible(False)
 
-        if self.anonymizer.backend == Backend.LLAMACPP:
-            self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
-        else:
-            self.status_bar.set_model_status("READY")
+        self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
 
         self._append_chat_html(
             f'<div style="margin: 6px 0; padding: 6px 12px; '
-            f"border-left: 3px solid {_ERROR}; border-radius: 2px;\">"
-            f'<span style="color: {_ERROR}; font-size: 10px;">ERROR: '
+            f"border-left: 3px solid {_c()["ERROR"]}; border-radius: 2px;\">"
+            f'<span style="color: {_c()["ERROR"]}; font-size: 10px;">ERROR: '
             f"{_html.escape(str(error))}</span></div>"
         )
 
@@ -1167,15 +1198,15 @@ class MainWindow(QMainWindow):
             chat_msg = t("file_cleared_chat", lang, name=_html.escape(fname))
             chat_lines = chat_msg.split("\n", 1)
             self.chat_view.setHtml(
-                f'<p style="color: {_TEXT_DIM}; font-size: 11px; '
+                f'<p style="color: {_c()["TEXT_DIM"]}; font-size: 11px; '
                 f"font-family: {_MONO}; letter-spacing: 0.5px;\">"
                 f"{chat_lines[0]}<br>"
-                f'<span style="color: {_TEXT_DIM};">'
+                f'<span style="color: {_c()["TEXT_DIM"]};">'
                 f"{chat_lines[1] if len(chat_lines) > 1 else ''}</span></p>"
             )
         else:
             self.chat_view.setHtml(
-                f'<p style="color: {_TEXT_VDIM}; font-size: 11px; '
+                f'<p style="color: {_c()["TEXT_VDIM"]}; font-size: 11px; '
                 f"font-family: {_MONO}; letter-spacing: 1px;\">"
                 f"{t('load_file_chat', lang)}</p>"
             )
@@ -1215,14 +1246,15 @@ class MainWindow(QMainWindow):
         # Restore scroll positions
         self.original_view.verticalScrollBar().setValue(orig_scroll)
         self.redacted_view.verticalScrollBar().setValue(redacted_scroll)
+        lang = self._lang
         self.left_label.setText(
-            f"DOCUMENT TEXT  ({n_active}/{n_total} PII HIGHLIGHTED)"
+            t("doc_text_count", lang, active=n_active, total=n_total)
         )
         self.right_label.setText(
-            f"REDACTED PREVIEW  ({n_active}/{n_total} REDACTED)"
+            t("redacted_count", lang, active=n_active, total=n_total)
         )
         self.table_label.setText(
-            f"DETECTED PII  ({n_active}/{n_total} ACTIVE)"
+            t("pii_count", lang, active=n_active, total=n_total)
         )
 
         # Update chip counts
@@ -1252,7 +1284,7 @@ class MainWindow(QMainWindow):
                 seen.append(entity.category)
 
         for cat in seen:
-            color = CATEGORY_COLORS.get(cat, _ACCENT)
+            color = CATEGORY_COLORS.get(cat, _c()["ACCENT"])
             label = CATEGORY_LABELS_TR.get(cat, cat)
             count = sum(1 for e in self._entities if e.category == cat)
 
@@ -1266,8 +1298,8 @@ class MainWindow(QMainWindow):
                 f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
                 f"font-weight: bold; letter-spacing: 0.5px; }}"
                 f"QPushButton:hover {{ background: {color}55; }}"
-                f"QPushButton:!checked {{ background: {_BG_LIGHT}; "
-                f"color: {_TEXT_VDIM}; border-color: {_BORDER}; }}"
+                f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
+                f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
             )
             btn.clicked.connect(
                 lambda checked, c=cat: self._on_category_toggled(c, checked)
@@ -1320,7 +1352,7 @@ class MainWindow(QMainWindow):
         btn.blockSignals(False)
 
         # Visual hint for partial selection
-        color = CATEGORY_COLORS.get(category, _ACCENT)
+        color = CATEGORY_COLORS.get(category, _c()["ACCENT"])
         if all_on:
             btn.setStyleSheet(
                 f"QPushButton {{ background: {color}33; color: {color}; "
@@ -1328,8 +1360,8 @@ class MainWindow(QMainWindow):
                 f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
                 f"font-weight: bold; letter-spacing: 0.5px; }}"
                 f"QPushButton:hover {{ background: {color}55; }}"
-                f"QPushButton:!checked {{ background: {_BG_LIGHT}; "
-                f"color: {_TEXT_VDIM}; border-color: {_BORDER}; }}"
+                f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
+                f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
             )
         elif any_on:
             # Partial: dimmed version of category color
@@ -1339,8 +1371,8 @@ class MainWindow(QMainWindow):
                 f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
                 f"font-weight: bold; letter-spacing: 0.5px; }}"
                 f"QPushButton:hover {{ background: {color}33; }}"
-                f"QPushButton:!checked {{ background: {_BG_LIGHT}; "
-                f"color: {_TEXT_VDIM}; border-color: {_BORDER}; }}"
+                f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
+                f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
             )
 
     def _update_chip_labels(self):
@@ -1396,7 +1428,7 @@ class MainWindow(QMainWindow):
         self._updating_table = True
         self.entity_table.setRowCount(len(self._entities))
         for row, entity in enumerate(self._entities):
-            color = CATEGORY_COLORS.get(entity.category, _ACCENT)
+            color = CATEGORY_COLORS.get(entity.category, _c()["ACCENT"])
             cat_label = CATEGORY_LABELS_TR.get(
                 entity.category, entity.category
             )
@@ -1420,12 +1452,12 @@ class MainWindow(QMainWindow):
             # Column 1: row number
             num_item = QTableWidgetItem(str(row + 1))
             num_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            num_item.setForeground(QColor(_TEXT_DIM))
+            num_item.setForeground(QColor(_c()["TEXT_DIM"]))
             self.entity_table.setItem(row, 1, num_item)
 
             # Column 2: original text
             orig_item = QTableWidgetItem(entity.original)
-            orig_item.setForeground(QColor(_TEXT))
+            orig_item.setForeground(QColor(_c()["TEXT"]))
             self.entity_table.setItem(row, 2, orig_item)
 
             # Column 3: category (colored in neon)
@@ -1435,7 +1467,7 @@ class MainWindow(QMainWindow):
 
             # Column 4: placeholder
             ph_item = QTableWidgetItem(entity.placeholder)
-            ph_item.setForeground(QColor(_TEXT_DIM))
+            ph_item.setForeground(QColor(_c()["TEXT_DIM"]))
             self.entity_table.setItem(row, 4, ph_item)
 
             # Column 5: confidence
@@ -1444,9 +1476,9 @@ class MainWindow(QMainWindow):
             conf_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             conf_item.setForeground(
                 QColor(
-                    _TEXT
+                    _c()["TEXT"]
                     if entity.confidence and entity.confidence >= 0.8
-                    else _TEXT_DIM
+                    else _c()["TEXT_DIM"]
                 )
             )
             self.entity_table.setItem(row, 5, conf_item)
@@ -1469,9 +1501,8 @@ class MainWindow(QMainWindow):
         if not active_spans:
             QMessageBox.warning(
                 self,
-                "Nothing to redact",
-                "No PII items are selected for redaction.\n"
-                "Check at least one item and try again.",
+                t("nothing_to_redact", self._lang),
+                t("nothing_to_redact_msg", self._lang),
             )
             return
 
@@ -1486,54 +1517,32 @@ class MainWindow(QMainWindow):
             )
             QMessageBox.information(
                 self,
-                "Export Complete",
-                f"Redacted file saved:\n{output_path}",
+                t("export_complete", self._lang),
+                t("export_complete_msg", self._lang, path=output_path),
             )
         except Exception as e:
-            self._show_error(f"Export failed:\n{e}")
+            self._show_error(t("export_failed", self._lang, error=e))
 
     # ── Settings ─────────────────────────────────────────────────────
 
     def _open_settings(self):
         dialog = SettingsDialog(self.llamacpp_manager, self)
-        # Pre-select the currently active backend and model
-        dialog.set_backend(self.anonymizer.backend)
-        dialog.set_model(self.anonymizer.model)
         if self.llamacpp_manager.gguf_path:
             dialog.set_gguf(str(self.llamacpp_manager.gguf_path))
 
         if dialog.exec():
-            backend = dialog.get_selected_backend()
-            old_backend = self.anonymizer.backend
-            self.anonymizer.backend = backend
-
-            gguf_path_str = ""
-            if backend == Backend.LLAMACPP:
-                selected_gguf = dialog.get_selected_gguf()
-                if selected_gguf:
-                    self.llamacpp_manager.set_gguf(selected_gguf)
-                    gguf_path_str = str(selected_gguf.path)
-                self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
-                self.model_label.setText("Qwen3.5 // llama.cpp")
-                if old_backend != Backend.LLAMACPP:
+            selected_gguf = dialog.get_selected_gguf()
+            if selected_gguf:
+                old_path = self.llamacpp_manager.gguf_path
+                self.llamacpp_manager.set_gguf(selected_gguf)
+                save_settings(gguf_path=str(selected_gguf.path))
+                if old_path != selected_gguf.path:
                     self._ensure_llamacpp_ready()
-            else:
-                model = dialog.get_selected_model()
-                if model:
-                    self.model_manager.current_model = model
-                    self.anonymizer.model = model
-                self.status_bar.set_model_status("READY")
-                self.model_label.setText("Qwen3 // ollama")
-
-            # Persist settings
-            save_settings(
-                backend=backend.value,
-                model=dialog.get_selected_model(),
-                gguf_path=gguf_path_str,
-            )
+                else:
+                    self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
 
     def _ensure_llamacpp_ready(self):
-        self.status_bar.set_model_status("STARTING LLAMA-SERVER...")
+        self.status_bar.set_model_status(t("starting_server", self._lang))
         worker = AsyncWorker(self.llamacpp_manager.ensure_ready)
         worker.finished.connect(self._on_llamacpp_ready)
         worker.error.connect(self._on_scan_error)
@@ -1544,14 +1553,13 @@ class MainWindow(QMainWindow):
     def _on_llamacpp_ready(self, success: bool):
         if success:
             self.status_bar.set_model_status("Qwen3.5 // llama.cpp")
-            self.model_label.setText("Qwen3.5 // llama.cpp")
-            self.status_bar.set_ollama_status(True)
+            self.status_bar.set_ready_status(True)
         else:
-            self.status_bar.set_model_status("LLAMA-SERVER FAILED")
-            self.status_bar.set_ollama_status(False)
+            self.status_bar.set_model_status(t("server_failed", self._lang))
+            self.status_bar.set_ready_status(False)
 
     # ── Utilities ────────────────────────────────────────────────────
 
     @Slot(str)
     def _show_error(self, msg: str):
-        QMessageBox.critical(self, "Error", msg)
+        QMessageBox.critical(self, t("error_title", self._lang), msg)

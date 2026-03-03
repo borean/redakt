@@ -94,6 +94,12 @@ _STRINGS = {
         "tr": "Ayrıştırılabilir tarih bulunamadı. Yaşa göre tarih modu etkinleştirilemiyor.",
         "en": "No parseable dates found. Cannot enable age-based date mode.",
     },
+    "birth_date_label": {"tr": "Doğum:", "en": "Birth:"},
+    "change_birth_date": {"tr": "Değiştir", "en": "Change"},
+    "tip_change_birth_date": {
+        "tr": "Doğum tarihini değiştir — yaş hesaplamaları yeniden yapılacak",
+        "en": "Change birth date — age calculations will be recalculated",
+    },
     "identifying_birth_date": {
         "tr": "Doğum tarihi tespit ediliyor...",
         "en": "Identifying birth date...",
@@ -159,10 +165,8 @@ _STRINGS = {
         "en": "Automatically managed local server. No configuration needed.",
     },
     "llamacpp_model_note": {
-        "tr": "Llama.cpp GGUF dosyaları kullanır. Kantizasyon, models/ dizinindeki .gguf dosyasına "
-              "bağlıdır. Bu seçenekler yalnızca Ollama motoru için geçerlidir.",
-        "en": "Llama.cpp uses GGUF files. The quantization depends on which .gguf file "
-              "is in your models/ directory. These options only apply to the Ollama engine.",
+        "tr": "Llama.cpp GGUF dosyaları kullanır. Model ilk çalıştırmada otomatik indirilir.",
+        "en": "Llama.cpp uses GGUF files. The model downloads automatically on first launch.",
     },
     "about": {"tr": "HAKKINDA", "en": "ABOUT"},
     "close": {"tr": "KAPAT", "en": "CLOSE"},
@@ -183,6 +187,100 @@ _STRINGS = {
         "en": "Full precision. Maximum quality, requires high-end hardware.",
     },
 
+    # ── Table headers ──
+    "col_original": {"tr": "ORİJİNAL", "en": "ORIGINAL"},
+    "col_type": {"tr": "TÜR", "en": "TYPE"},
+    "col_replacement": {"tr": "YERİNE", "en": "REPLACEMENT"},
+    "col_conf": {"tr": "GÜVEN", "en": "CONF"},
+
+    # ── Dynamic panel headers ──
+    "doc_text_count": {
+        "tr": "BELGE METNİ  ({active}/{total} KVK VURGULANMIŞ)",
+        "en": "DOCUMENT TEXT  ({active}/{total} PII HIGHLIGHTED)",
+    },
+    "redacted_count": {
+        "tr": "ANONİMLEŞTİRİLMİŞ ÖNİZLEME  ({active}/{total} ANONİMLEŞTİRİLMİŞ)",
+        "en": "REDACTED PREVIEW  ({active}/{total} REDACTED)",
+    },
+    "pii_count": {
+        "tr": "TESPİT EDİLEN KVK  ({active}/{total} AKTİF)",
+        "en": "DETECTED PII  ({active}/{total} ACTIVE)",
+    },
+
+    # ── File info ──
+    "file_chars": {
+        "tr": "{name}  |  {count} karakter",
+        "en": "{name}  |  {count} chars",
+    },
+    "file_image": {
+        "tr": "{name}  |  GÖRÜNTÜ",
+        "en": "{name}  |  IMAGE",
+    },
+    "doc_text_chars": {
+        "tr": "BELGE METNİ  ({count} karakter)",
+        "en": "DOCUMENT TEXT  ({count} chars)",
+    },
+
+    # ── Chat labels ──
+    "chat_you": {"tr": "SİZ", "en": "YOU"},
+    "chat_ai": {"tr": "YAPAY ZEKA", "en": "AI"},
+    "chat_thinking": {"tr": "DÜŞÜNÜYOR...", "en": "THINKING..."},
+
+    # ── Detected text (image) ──
+    "detected_text_count": {
+        "tr": "TESPİT EDİLEN METİN  ({count} öğe)",
+        "en": "DETECTED TEXT  ({count} entities)",
+    },
+    "pii_in_image": {
+        "tr": "Görüntüde KVK tespit edildi ({count} öğe):",
+        "en": "PII detected in image ({count} entities):",
+    },
+    "image_scanned": {"tr": "Görüntü tarandı", "en": "Image scanned"},
+
+    # ── Error/dialog messages ──
+    "nothing_to_redact": {
+        "tr": "Anonimleştirilecek veri yok",
+        "en": "Nothing to redact",
+    },
+    "nothing_to_redact_msg": {
+        "tr": "Anonimleştirme için hiçbir KVK öğesi seçilmedi.\nEn az bir öğeyi işaretleyip tekrar deneyin.",
+        "en": "No PII items are selected for redaction.\nCheck at least one item and try again.",
+    },
+    "export_complete": {"tr": "Dışa Aktarma Tamamlandı", "en": "Export Complete"},
+    "export_complete_msg": {
+        "tr": "Anonimleştirilmiş dosya kaydedildi:\n{path}",
+        "en": "Redacted file saved:\n{path}",
+    },
+    "export_failed": {
+        "tr": "Dışa aktarma başarısız:\n{error}",
+        "en": "Export failed:\n{error}",
+    },
+    "scan_failed": {
+        "tr": "Tarama başarısız:\n{error}",
+        "en": "Scan failed:\n{error}",
+    },
+    "file_read_failed": {
+        "tr": "Dosya okunamadı:\n{error}",
+        "en": "Failed to read file:\n{error}",
+    },
+    "unsupported_file": {
+        "tr": "Desteklenmeyen dosya türü: {ext}\n\nDesteklenen: {supported}",
+        "en": "Unsupported file type: {ext}\n\nSupported: {supported}",
+    },
+    "error_title": {"tr": "Hata", "en": "Error"},
+    "open_document": {
+        "tr": "Tıbbi Belge Aç",
+        "en": "Open Medical Document",
+    },
+    "file_filter": {
+        "tr": "Desteklenen Dosyalar ({exts});;Tüm Dosyalar (*)",
+        "en": "Supported Files ({exts});;All Files (*)",
+    },
+
+    # ── Status messages ──
+    "starting_server": {"tr": "LLAMA-SUNUCU BAŞLATILIYOR...", "en": "STARTING LLAMA-SERVER..."},
+    "server_failed": {"tr": "LLAMA-SUNUCU BAŞARISIZ", "en": "LLAMA-SERVER FAILED"},
+
     # ── Status bar ──
     "engine_label": {"tr": "MOTOR:", "en": "ENGINE:"},
     "connected": {"tr": "BAĞLI", "en": "CONNECTED"},
@@ -192,6 +290,9 @@ _STRINGS = {
     "ready": {"tr": "HAZIR", "en": "READY"},
     "local": {"tr": "YEREL", "en": "LOCAL"},
     "inferencing": {"tr": "İŞLENİYOR...", "en": "INFERENCING..."},
+    "status_ready": {"tr": "HAZIR", "en": "READY"},
+    "status_processing": {"tr": "YERELDE İŞLENİYOR...", "en": "PROCESSING LOCALLY..."},
+    "status_local_badge": {"tr": "%100 YEREL · İNTERNET GEREKMİYOR", "en": "100% LOCAL · NO INTERNET"},
 }
 
 

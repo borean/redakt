@@ -1,5 +1,4 @@
 import asyncio
-import base64
 import json as _json
 import logging
 import re
@@ -8,14 +7,7 @@ from collections import defaultdict
 import httpx
 log = logging.getLogger(__name__)
 
-from redakt.constants import (
-    Backend,
-    DEFAULT_MODEL,
-    LLAMACPP_HOST,
-    OLLAMA_HOST,
-    VISION_MODEL,
-    Language,
-)
+from redakt.constants import Backend, LLAMACPP_API_MODEL, LLAMACPP_HOST, Language
 from redakt.core.entities import PIIEntity, PIIResponse
 from redakt.core.prompts import (
     CHAT_SYSTEM_EN,
@@ -90,27 +82,20 @@ _CATEGORY_ALIASES: dict[str, str] = {
     "email_address": "email",
 }
 
-# Flattened JSON schema for ollama (no $ref — avoids constrained decoding bugs)
-_OLLAMA_SCHEMA = PIIResponse.ollama_json_schema()
-
-
 class Anonymizer:
     """Core anonymization engine.
 
-    Supports two backends:
-    - **ollama**: Uses ollama's ``/api/chat`` with structured ``format`` output.
-    - **llamacpp**: Uses llama.cpp server's OpenAI-compatible ``/v1/chat/completions``
-      with ``response_format: {type: "json_object"}``.
+    Uses llama.cpp server's OpenAI-compatible /v1/chat/completions
+    with response_format: {type: "json_object"}, no user setup required.
     """
 
     def __init__(
         self,
-        model: str = DEFAULT_MODEL,
+        model: str = LLAMACPP_API_MODEL,
         language: Language = Language.TR,
-        backend: Backend = Backend.OLLAMA,
+        backend: Backend = Backend.LLAMACPP,
     ):
-        self.model = model
-        self.vision_model = VISION_MODEL
+        self.model = model or LLAMACPP_API_MODEL
         self.language = language
         self.backend = backend
 
@@ -141,26 +126,6 @@ class Anonymizer:
             entity.subcategory = raw_key  # preserve raw LLM category
             entity.category = self._normalize_category(entity.category)
         return response
-
-    # ── Backend: ollama ───────────────────────────────────────────────
-
-    async def _chat_ollama(self, messages: list[dict], model: str | None = None) -> str:
-        """Send a chat request to ollama and return the content string."""
-        payload = {
-            "model": model or self.model,
-            "messages": messages,
-            "format": _OLLAMA_SCHEMA,
-            "stream": False,
-            "think": False,
-            "options": {"temperature": 0.1, "num_ctx": 8192},
-        }
-        async with httpx.AsyncClient(timeout=None) as client:
-            resp = await client.post(f"{OLLAMA_HOST}/api/chat", json=payload)
-            resp.raise_for_status()
-        data = resp.json()
-        if "error" in data:
-            raise RuntimeError(f"Ollama error: {data['error']}")
-        return data.get("message", {}).get("content", "")
 
     # ── Backend: llama.cpp ────────────────────────────────────────────
 
@@ -314,23 +279,6 @@ class Anonymizer:
 
     # ── Free-form (plain text) chat ─────────────────────────────────
 
-    async def _chat_freeform_ollama(self, messages: list[dict], model: str | None = None) -> str:
-        """Send a free-form chat to ollama (no JSON format constraint)."""
-        payload = {
-            "model": model or self.model,
-            "messages": messages,
-            "stream": False,
-            "think": False,
-            "options": {"temperature": 0.3, "num_ctx": 8192},
-        }
-        async with httpx.AsyncClient(timeout=None) as client:
-            resp = await client.post(f"{OLLAMA_HOST}/api/chat", json=payload)
-            resp.raise_for_status()
-        data = resp.json()
-        if "error" in data:
-            raise RuntimeError(f"Ollama error: {data['error']}")
-        return data.get("message", {}).get("content", "")
-
     async def _chat_freeform_llamacpp(self, messages: list[dict], max_retries: int = 3) -> str:
         """Send a free-form chat to llama.cpp (no JSON constraint).
 
@@ -387,18 +335,12 @@ class Anonymizer:
         raise RuntimeError(str(last_error)) if last_error else RuntimeError("Unknown error")
 
     async def _chat_freeform(self, messages: list[dict], model: str | None = None) -> str:
-        """Route free-form (non-JSON) chat to the active backend."""
-        if self.backend == Backend.LLAMACPP:
-            return await self._chat_freeform_llamacpp(messages)
-        return await self._chat_freeform_ollama(messages, model=model)
-
-    # ── Unified chat dispatch ─────────────────────────────────────────
+        """Free-form (non-JSON) chat via llama.cpp."""
+        return await self._chat_freeform_llamacpp(messages)
 
     async def _chat(self, messages: list[dict], model: str | None = None) -> str:
-        """Route to the active backend."""
-        if self.backend == Backend.LLAMACPP:
-            return await self._chat_llamacpp(messages)
-        return await self._chat_ollama(messages, model=model)
+        """Chat via llama.cpp."""
+        return await self._chat_llamacpp(messages)
 
     # ── Response normalization ─────────────────────────────────────────
 
@@ -407,7 +349,6 @@ class Anonymizer:
         """Normalize LLM JSON to our schema regardless of field names used.
 
         Different models return different field conventions:
-        - ollama (constrained):  {"original", "category", "placeholder"}
         - Qwen3.5 (free-form):  {"value", "type", "context"}
         - Others:               {"text", "label", "replacement"}
 
@@ -487,6 +428,39 @@ class Anonymizer:
 
     # ── PII detection ─────────────────────────────────────────────────
 
+    def _extract_dates_by_regex(self, text: str) -> list[PIIEntity]:
+        """Fallback: extract date-like patterns when LLM returns nothing.
+
+        Uses regex to find DD.MM.YYYY, YYYY-MM-DD, and similar formats.
+        Returns unique PIIEntity list (deduplicated by original text).
+        """
+        seen: set[str] = set()
+        entities: list[PIIEntity] = []
+        patterns = [
+            r"\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4}",
+            r"\d{4}-\d{1,2}-\d{1,2}",
+            r"\d{4}/\d{1,2}/\d{1,2}",
+            r"\d{1,2}[\s.\-]+(?:ocak|şubat|subat|mart|nisan|mayıs|mayis|haziran|temmuz|ağustos|agustos|eylül|eylul|ekim|kasım|kasim|aralık|aralik|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)[\s.\-]+\d{4}",
+            r"(?:ocak|şubat|subat|mart|nisan|mayıs|mayis|haziran|temmuz|ağustos|agustos|eylül|eylul|ekim|kasım|kasim|aralık|aralik|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)[\s.\-]+\d{1,2},?\s*\d{4}",
+            r"\d{1,2}[./]\d{4}",
+        ]
+        for pat in patterns:
+            for m in re.finditer(pat, text, re.IGNORECASE):
+                orig = m.group(0).strip()
+                if orig in seen:
+                    continue
+                if self._parse_date(orig):
+                    seen.add(orig)
+                    entities.append(
+                        PIIEntity(
+                            original=orig,
+                            category="date",
+                            placeholder="",  # renumber later
+                            subcategory="date",
+                        )
+                    )
+        return entities
+
     async def detect_pii_from_text(self, text: str) -> PIIResponse:
         sys_prompt, usr_template = self._get_prompts()
 
@@ -510,53 +484,42 @@ class Anonymizer:
                 )
             except Exception:
                 result = PIIResponse(entities=[], summary=f"Parse error: {e}")
+
+        # Fallback: when LLM returns no entities, use regex to extract dates
+        if not result.entities:
+            fallback = self._extract_dates_by_regex(text)
+            if fallback:
+                log.info("LLM returned no PII; using regex fallback for %d date(s)", len(fallback))
+                result = PIIResponse(
+                    entities=self._renumber_placeholders(fallback),
+                    summary="Dates found via pattern matching",
+                )
+
         return self._normalize_entities(result)
 
     async def detect_pii_from_image(self, image_path: str) -> PIIResponse:
-        sys_prompt, vis_prompt = self._get_vision_prompt()
+        """Image PII: use OCR to extract text, then run text PII detection."""
+        import fitz
 
-        if self.backend == Backend.LLAMACPP:
-            # llama.cpp doesn't support vision in this setup;
-            # fall back to ollama's vision model
-            try:
-                from ollama import AsyncClient
-            except ImportError:
-                raise RuntimeError(
-                    "Vision processing requires the ollama package. "
-                    "Install with: pip install ollama"
-                )
-
-            client = AsyncClient()
-            response = await client.chat(
-                model=self.vision_model,
-                messages=[
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": vis_prompt, "images": [image_path]},
-                ],
-                format=_OLLAMA_SCHEMA,
-                options={"temperature": 0.1, "num_ctx": 8192},
-                think=False,
-            )
-            content = response.message.content
-        else:
-            # ollama: base64-encode the image
-            with open(image_path, "rb") as f:
-                img_b64 = base64.b64encode(f.read()).decode()
-            content = await self._chat_ollama(
-                [
-                    {"role": "system", "content": sys_prompt},
-                    {"role": "user", "content": vis_prompt, "images": [img_b64]},
-                ],
-                model=self.vision_model,
-            )
-
-        content = self._normalize_llm_response(content)
+        doc = fitz.open(image_path)
         try:
-            result = PIIResponse.model_validate_json(content)
-        except Exception as e:
-            log.warning("Failed to validate image PII response: %s", e)
-            result = PIIResponse(entities=[], summary=f"Parse error: {e}")
-        return self._normalize_entities(result)
+            page = doc[0]
+            text = page.get_text("text")
+            if not text.strip():
+                try:
+                    tp = page.get_textpage_ocr(language="tur+eng", dpi=300)
+                    text = page.get_text("text", textpage=tp)
+                except Exception:
+                    text = ""
+        finally:
+            doc.close()
+
+        if not text.strip():
+            return PIIResponse(
+                entities=[],
+                summary="No text could be extracted from the image. Try a higher resolution image.",
+            )
+        return await self.detect_pii_from_text(text)
 
     # ── Chunking ──────────────────────────────────────────────────────
 
@@ -775,6 +738,16 @@ class Anonymizer:
             except ValueError:
                 pass
 
+        # Fallback: standalone 4-digit year anywhere in text (e.g. "menarş 2022")
+        m = _re.search(r"\b(\d{4})\b", text)
+        if m:
+            year = int(m.group(1))
+            if 1900 <= year <= 2100:
+                try:
+                    return date_type(year, 1, 1)
+                except ValueError:
+                    pass
+
         return None
 
     @staticmethod
@@ -886,16 +859,21 @@ class Anonymizer:
             return cls._BIRTH_DATE_REGEX_PATTERNS
 
         _DATE_NUM = r"(\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4})"
+        _DATE_ISO = r"(\d{4}-\d{1,2}-\d{1,2})"  # YYYY-MM-DD
         _DATE_NAMED = r"(\d{1,2}\s+\w+\s+\d{4})"
 
+        # Optional parenthetical (e.g. "(*)" for required fields in medical forms)
+        _OPT_PAREN = r"(?:\s*\([^)]*\))?"
         raw_patterns = [
             # ── Turkish patterns ──
-            # "Doğum tarihi: 29.03.2012" / "Doğum Tarihi = 29/03/2012"
-            r"do[gğ]um\s*tarihi\s*[:=]?\s*" + _DATE_NUM,
-            r"do[gğ]um\s*tarihi\s*[:=]?\s*" + _DATE_NAMED,
-            # "D.Tarihi: 29.03.2012" / "D. Tarihi: 29.03.2012" / "D tarihi: ..."
-            r"d\.?\s*tarihi\s*[:=]?\s*" + _DATE_NUM,
-            r"d\.?\s*tarihi\s*[:=]?\s*" + _DATE_NAMED,
+            # "Doğum tarihi: 29.03.2012" / "Doğum Tarihi (*) : 23.02.2015"
+            r"do[gğ]um\s*tarihi" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_NUM,
+            r"do[gğ]um\s*tarihi" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_ISO,
+            r"do[gğ]um\s*tarihi" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_NAMED,
+            # "D.Tarihi: 29.03.2012" / "D. Tarihi (*) : 23.02.2015"
+            r"d\.?\s*tarihi" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_NUM,
+            r"d\.?\s*tarihi" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_ISO,
+            r"d\.?\s*tarihi" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_NAMED,
             # "D.T.: 29.03.2012" / "DT: 29.03.2012" / "D.T: ..."
             r"d\.?\s*t\.?\s*[:=]\s*" + _DATE_NUM,
             # "Doğumlu: 29.03.2012" (label form)
@@ -906,9 +884,10 @@ class Anonymizer:
             r"do[gğ]\.?\s*tar\.?\s*[:=]?\s*" + _DATE_NUM,
 
             # ── English patterns ──
-            # "Date of Birth: 29/03/2012" / "DOB: ..." / "Birth Date: ..."
-            r"(?:date\s*of\s*birth|dob|birth\s*date)\s*[:=]?\s*" + _DATE_NUM,
-            r"(?:date\s*of\s*birth|dob|birth\s*date)\s*[:=]?\s*" + _DATE_NAMED,
+            # "Date of Birth: 29/03/2012" / "Date of Birth (*) : 23.02.2015"
+            r"(?:date\s*of\s*birth|dob|birth\s*date)" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_NUM,
+            r"(?:date\s*of\s*birth|dob|birth\s*date)" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_ISO,
+            r"(?:date\s*of\s*birth|dob|birth\s*date)" + _OPT_PAREN + r"\s*[:=]?\s*" + _DATE_NAMED,
             # "Born: 29/03/2012" / "Born on 29/03/2012"
             r"born\s+(?:on\s+)?" + _DATE_NUM,
             r"born\s+(?:on\s+)?" + _DATE_NAMED,
@@ -945,6 +924,67 @@ class Anonymizer:
                         pattern.pattern, date_str, parsed,
                     )
                     return parsed
+
+        return None
+
+    # Phrases that indicate birth date (fuzzy match against context before a date)
+    _BIRTH_PHRASES = (
+        "doğum tarihi", "dogum tarihi", "doğum tarih",
+        "d.tarihi", "d.t.", "dt:", "d.t:", "d.tarih",
+        "doğumlu", "dogumlu",
+        "date of birth", "birth date", "dob", "d.o.b",
+        "born", "born on",
+    )
+
+    # Phrases that indicate NOT birth date (examination, report, etc.)
+    _NON_BIRTH_PHRASES = (
+        "muayene tarihi", "examination date", "visit date",
+        "rapor tarihi", "report date", "sonuç tarihi",
+        "yatış", "taburcu", "admission", "discharge",
+    )
+
+    def _find_birth_date_by_fuzzy_scan(self, document_text: str):
+        """Fuzzy fallback: find dates whose preceding context resembles birth date.
+
+        Handles unexpected conventions (e.g. "Dogum Tarihi", "DT: 23.02.2015",
+        "birth date 23.02.2015", OCR typos). Runs after regex patterns fail.
+        """
+        if not document_text:
+            return None
+
+        try:
+            from rapidfuzz.fuzz import partial_ratio
+        except ImportError:
+            return None
+
+        # Broad date pattern: DD.MM.YYYY, YYYY-MM-DD, DD/MM/YYYY, etc.
+        date_re = re.compile(
+            r"\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2}"
+        )
+        context_before = 100
+
+        for m in date_re.finditer(document_text):
+            date_str = m.group(0)
+            parsed = self._parse_date(date_str)
+            if not parsed or not self._is_plausible_birth_date(parsed):
+                continue
+
+            start = max(0, m.start() - context_before)
+            context = document_text[start: m.end()].lower()
+
+            # Reject if context clearly indicates non-birth date
+            for phrase in self._NON_BIRTH_PHRASES:
+                if partial_ratio(phrase, context) >= 90:
+                    break
+            else:
+                # No non-birth phrase matched; check for birth phrase
+                for phrase in self._BIRTH_PHRASES:
+                    if partial_ratio(phrase, context) >= 80:
+                        log.debug(
+                            "Birth date found by fuzzy scan (phrase=%r): %s -> %s",
+                            phrase, date_str, parsed,
+                        )
+                        return parsed
 
         return None
 
@@ -1018,11 +1058,11 @@ class Anonymizer:
         entities: list,
         document_text: str = "",
         birth_date_text: str | None = None,
-    ) -> list:
+    ) -> tuple[list, str | None]:
         """Convert date entities to age-relative format when a birth date is found.
 
         - Birth date stays fully redacted ([TARIH_1] / [DATE_1])
-        - Other dates become "X yıl Y aylıkken" (TR) or "at age X.Y yrs" (EN)
+        - Other dates become "X.Y yaşında" (TR) or "at age X.Y yrs" (EN), always decimal
 
         If *birth_date_text* is provided (the original text of the date entity
         selected by the user), it is used directly — skipping all heuristic
@@ -1032,6 +1072,9 @@ class Anonymizer:
         2.   Document context (text near the date mentions "doğum tarihi" etc.)
         3.   Earliest date heuristic (use earliest parseable date as birth date
              when 2+ dates exist — no gap requirement)
+
+        Returns (entities, birth_date_text) where birth_date_text is the accepted
+        birth date's original string, or None if no birth date was found.
         """
         from redakt.constants import Language
 
@@ -1053,10 +1096,6 @@ class Anonymizer:
         if not birth_date:
             regex_birth = self._find_birth_date_by_regex_scan(document_text)
             if regex_birth:
-                # Must match the parsed date to an entity object so we can
-                # exclude it from age conversion.  If no entity matches,
-                # discard this result — converting without a matched entity
-                # would age-convert the birth date itself.
                 for e in entities:
                     if e.category != "date":
                         continue
@@ -1064,6 +1103,23 @@ class Anonymizer:
                     if parsed and parsed == regex_birth:
                         birth_date = regex_birth
                         birth_entity = e
+                        break
+
+        # ── Strategy 0b: Fuzzy scan for unexpected conventions ────────
+        if not birth_date:
+            fuzzy_birth = self._find_birth_date_by_fuzzy_scan(document_text)
+            if fuzzy_birth:
+                for e in entities:
+                    if e.category != "date":
+                        continue
+                    parsed = self._parse_date(e.original)
+                    if parsed and parsed == fuzzy_birth:
+                        birth_date = fuzzy_birth
+                        birth_entity = e
+                        log.debug(
+                            "Birth date matched from fuzzy scan: %s",
+                            e.original,
+                        )
                         break
 
         # ── Strategy 1: Find by subcategory ──────────────────────────
@@ -1103,7 +1159,7 @@ class Anonymizer:
 
         if not birth_date:
             log.debug("No birth date could be determined — skipping age conversion")
-            return entities  # no birth date found
+            return entities, None
 
         # ── Convert other dates to age-relative placeholders ─────────
         for e in entities:
@@ -1116,20 +1172,14 @@ class Anonymizer:
             if self.language == Language.TR:
                 if years == 0 and months == 0:
                     e.placeholder = "doğduğu gün"
-                elif years == 0:
-                    e.placeholder = f"{months} aylıkken"
-                elif months > 0:
-                    e.placeholder = f"{years} yıl {months} aylıkken"
                 else:
-                    e.placeholder = f"{years} yaşındayken"
-            else:
-                if months > 0:
                     frac = round(years + months / 12, 1)
-                    e.placeholder = f"at age {frac} yrs"
-                else:
-                    e.placeholder = f"at age {years} yrs"
+                    e.placeholder = f"{frac} yaşında"
+            else:
+                frac = round(years + months / 12, 1)
+                e.placeholder = f"at age {frac} yrs"
 
-        return entities
+        return entities, birth_entity.original if birth_entity else None
 
     async def detect_pii_chunked(self, text: str) -> PIIResponse:
         chunks = self.chunk_text(text)
