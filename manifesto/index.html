@@ -212,6 +212,20 @@
             color: var(--text-dim);
             letter-spacing: 0.05em;
             text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6em;
+        }
+
+        .os-icons {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5em;
+        }
+
+        .os-icons svg {
+            opacity: 0.5;
         }
 
         .scroll-arrow {
@@ -682,7 +696,6 @@
             font-size: 0.8rem;
             font-weight: 700;
             letter-spacing: 0.05em;
-            text-transform: uppercase;
             display: block;
             margin-bottom: 0.35rem;
         }
@@ -784,7 +797,8 @@
         html[lang="tr"] .feature h3,
         html[lang="tr"] .download-note,
         html[lang="tr"] .local-badge,
-        html[lang="tr"] .nav-links a {
+        html[lang="tr"] .nav-links a,
+        html[lang="tr"] .demo-pane-label {
             text-transform: none;
         }
     </style>
@@ -816,7 +830,7 @@
         <a href="#download" class="btn btn-primary" data-i18n="hero_download">Download Redakt</a>
         <a href="https://github.com/borean/redakt" target="_blank" class="btn btn-secondary" data-i18n="hero_github">View on GitHub</a>
     </div>
-    <p class="hero-meta" data-i18n="hero_meta">Mac &middot; Windows &middot; Linux &middot; Free &amp; open source</p>
+    <p class="hero-meta"><span class="os-icons"><svg width="14" height="14" viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15.1 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg><svg width="14" height="14" viewBox="0 0 448 512" fill="currentColor"><path d="M0 93.7l183.6-25.3v177.4H0V93.7zm0 324.6l183.6 25.3V268.4H0v149.9zm203.8 28L448 480V268.4H203.8v177.9zm0-380.6v180.1H448V32L203.8 65.7z"/></svg><svg width="14" height="14" viewBox="0 0 448 512" fill="currentColor"><path d="M220.8 123.3c1 .5 1.8 1.7 3 1.7 1.1 0 2.8-.4 2.9-1.5.2-1.4-1.9-2.3-3.2-2.9-1.7-.7-3.9-1-5.5-.1-.4.2-.8.7-.6 1.1.3 1.3 2.3 1.1 3.4 1.7zm-21.9 1.7c1.2 0 2-1.2 3-1.7 1.1-.6 3.1-.4 3.5-1.6.2-.4-.2-.9-.6-1.1-1.6-.9-3.8-.6-5.5.1-1.3.6-3.4 1.5-3.2 2.9.1 1 1.8 1.5 2.8 1.4zM420 403.8c-3.6-4-5.3-11.6-7.2-19.7-1.8-8.1-3.9-16.8-10.5-22.4-1.3-1.1-2.6-2.1-4-2.9-1.3-.8-2.7-1.5-4.1-2 9.2-27.3 5.6-54.5-3.7-79.1-11.4-30.1-31.3-56.4-46.5-74.4-17.1-21.5-33.7-41.9-33.4-72C311.1 85.4 315.7.1 234.8 0 132.4-.2 158 103.4 156.9 135.2c-1.7 23.4-6.4 41.8-22.5 64.7-18.9 22.5-45.5 58.8-58.1 96.7-6 17.9-8.8 36.1-6.2 53.3-6.5 5.8-11.4 14.7-16.6 20.2-4.2 4.3-10.3 5.9-17 8.3s-14 6-18.5 14.5c-2.1 3.9-2.8 8.1-2.8 12.4 0 3.9.6 7.9 1.2 11.8 1.2 8.1 2.5 15.7.8 20.8-5.2 14.4-5.9 24.4-2.2 31.7 3.8 7.3 11.4 10.5 20.1 12.3 17.3 3.6 40.8 2.7 59.3 12.5 19.8 10.4 39.9 14.1 55.9 10.4 11.6-2.6 21.1-9.6 25.9-20.2 12.5-.1 26.3-5.4 48.3-6.6 14.9-1.2 33.6 5.3 55.1 4.1.6 2.3 1.4 4.6 2.5 6.7v.1c8.3 16.7 23.8 24.3 40.3 23 16.6-1.3 34.1-11 48.3-27.9 13.6-16.4 36-23.2 50.9-32.2 7.4-4.5 13.4-10.1 13.9-18.3.4-8.2-4.4-17.3-15.5-29.7zM223.7 87.3c9.8-22.2 34.2-21.8 44-.4 6.5 14.2 3.6 30.9-4.3 40.4-1.6-.8-5.9-2.6-12.6-4.9 1.1-1.2 3.1-2.7 3.9-4.6 4.8-11.8-.2-27-9.1-27.3-7.3-.5-13.9 10.8-11.8 23-4.1-2-9.4-3.5-13-4.4-1-6.9-.3-14.6 2.9-21.8zM183 75.8c10.1 0 20.8 14.2 19.1 33.5-3.5 1-7.1 2.5-10.2 4.6 1.2-8.9-3.3-20.1-9.6-19.6-8.4.7-9.8 21.2-1.8 28.1C175 124.4 162.6 128 151 130.8c-10.1-22.8-2.8-55 32-55zM186 313c-3.8 0-7.5-.7-11.1-2.1-8.1-3.3-15.1-10.1-18.9-19.3-3.9-9.6-4.8-20.9-2.3-31.3 1.2-5.1 3.2-10 5.9-14.3 3.3-5.2 7.6-9.3 12.4-12.3 4.7-2.9 10-4.6 15.5-5.1 6.3-.6 12.8.4 18.7 3.1 5 2.3 9.4 5.6 13 9.7 3.4 3.9 6 8.4 7.7 13.4 3.1 8.8 3.1 18.6.1 27.1-2.8 8-8.2 14.7-15 19.1-6.4 4.1-14 6.2-21.7 6.8-1.4.2-2.9.2-4.2.2zm193.5-79.8c6 .1 11.8 1.8 16.8 5 4.5 2.8 8.2 6.8 10.8 11.6 3 5.5 4.4 11.8 4.1 18.2-.3 6.5-2.3 12.8-5.8 18.2-3 4.5-7.1 8.2-12 10.7-5.1 2.6-11 3.6-16.8 3.3-6.1-.3-12-2.2-17-5.6-4.5-3.1-8-7.3-10.3-12.1-2.5-5.3-3.5-11.1-2.9-16.8.7-6.6 3.1-12.9 7-18.1 3.6-4.8 8.3-8.5 13.6-11 4-1.8 8.3-2.8 12.5-3.4zm0 0"/></svg></span> <span data-i18n="hero_meta_text">Free &amp; open source</span></p>
     <a href="#features" class="scroll-arrow" aria-label="Scroll down">&#8595;</a>
 </section>
 
@@ -1040,18 +1054,18 @@
     </p>
     <div class="download-cards">
         <a class="download-card" href="https://github.com/borean/redakt/releases/download/v0.1.0-alpha/Redakt-macOS-arm64.zip" style="text-decoration: none; color: inherit;">
-            <div class="os-icon">&#63743;</div>
-            <span class="os-name">macOS</span>
+            <div class="os-icon"><svg width="32" height="32" viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15.1 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></div>
+            <span class="os-name">MAC</span>
             <span class="os-detail">Apple Silicon · 84 MB</span>
         </a>
         <div class="download-card" style="cursor: default; opacity: 0.7;">
-            <div class="os-icon">&#9783;</div>
-            <span class="os-name">Windows</span>
+            <div class="os-icon"><svg width="32" height="32" viewBox="0 0 448 512" fill="currentColor"><path d="M0 93.7l183.6-25.3v177.4H0V93.7zm0 324.6l183.6 25.3V268.4H0v149.9zm203.8 28L448 480V268.4H203.8v177.9zm0-380.6v180.1H448V32L203.8 65.7z"/></svg></div>
+            <span class="os-name">WINDOWS</span>
             <span class="os-detail" style="color: var(--accent);" data-i18n="dl_coming_soon">Coming Soon</span>
         </div>
         <div class="download-card" style="cursor: default; opacity: 0.7;">
-            <div class="os-icon">&#9881;</div>
-            <span class="os-name">Linux</span>
+            <div class="os-icon"><svg width="32" height="32" viewBox="0 0 448 512" fill="currentColor"><path d="M220.8 123.3c1 .5 1.8 1.7 3 1.7 1.1 0 2.8-.4 2.9-1.5.2-1.4-1.9-2.3-3.2-2.9-1.7-.7-3.9-1-5.5-.1-.4.2-.8.7-.6 1.1.3 1.3 2.3 1.1 3.4 1.7zm-21.9 1.7c1.2 0 2-1.2 3-1.7 1.1-.6 3.1-.4 3.5-1.6.2-.4-.2-.9-.6-1.1-1.6-.9-3.8-.6-5.5.1-1.3.6-3.4 1.5-3.2 2.9.1 1 1.8 1.5 2.8 1.4zM420 403.8c-3.6-4-5.3-11.6-7.2-19.7-1.8-8.1-3.9-16.8-10.5-22.4-1.3-1.1-2.6-2.1-4-2.9-1.3-.8-2.7-1.5-4.1-2 9.2-27.3 5.6-54.5-3.7-79.1-11.4-30.1-31.3-56.4-46.5-74.4-17.1-21.5-33.7-41.9-33.4-72C311.1 85.4 315.7.1 234.8 0 132.4-.2 158 103.4 156.9 135.2c-1.7 23.4-6.4 41.8-22.5 64.7-18.9 22.5-45.5 58.8-58.1 96.7-6 17.9-8.8 36.1-6.2 53.3-6.5 5.8-11.4 14.7-16.6 20.2-4.2 4.3-10.3 5.9-17 8.3s-14 6-18.5 14.5c-2.1 3.9-2.8 8.1-2.8 12.4 0 3.9.6 7.9 1.2 11.8 1.2 8.1 2.5 15.7.8 20.8-5.2 14.4-5.9 24.4-2.2 31.7 3.8 7.3 11.4 10.5 20.1 12.3 17.3 3.6 40.8 2.7 59.3 12.5 19.8 10.4 39.9 14.1 55.9 10.4 11.6-2.6 21.1-9.6 25.9-20.2 12.5-.1 26.3-5.4 48.3-6.6 14.9-1.2 33.6 5.3 55.1 4.1.6 2.3 1.4 4.6 2.5 6.7v.1c8.3 16.7 23.8 24.3 40.3 23 16.6-1.3 34.1-11 48.3-27.9 13.6-16.4 36-23.2 50.9-32.2 7.4-4.5 13.4-10.1 13.9-18.3.4-8.2-4.4-17.3-15.5-29.7zM223.7 87.3c9.8-22.2 34.2-21.8 44-.4 6.5 14.2 3.6 30.9-4.3 40.4-1.6-.8-5.9-2.6-12.6-4.9 1.1-1.2 3.1-2.7 3.9-4.6 4.8-11.8-.2-27-9.1-27.3-7.3-.5-13.9 10.8-11.8 23-4.1-2-9.4-3.5-13-4.4-1-6.9-.3-14.6 2.9-21.8zM183 75.8c10.1 0 20.8 14.2 19.1 33.5-3.5 1-7.1 2.5-10.2 4.6 1.2-8.9-3.3-20.1-9.6-19.6-8.4.7-9.8 21.2-1.8 28.1C175 124.4 162.6 128 151 130.8c-10.1-22.8-2.8-55 32-55zm86.5 237.2c-3.8 0-7.5-.7-11.1-2.1-8.1-3.3-15.1-10.1-18.9-19.3-3.9-9.6-4.8-20.9-2.3-31.3 1.2-5.1 3.2-10 5.9-14.3 3.3-5.2 7.6-9.3 12.4-12.3 4.7-2.9 10-4.6 15.5-5.1 6.3-.6 12.8.4 18.7 3.1 5 2.3 9.4 5.6 13 9.7 3.4 3.9 6 8.4 7.7 13.4 3.1 8.8 3.1 18.6.1 27.1-2.8 8-8.2 14.7-15 19.1-6.4 4.1-14 6.2-21.7 6.8-1.4.2-2.9.2-4.2.2zm193.5-79.8c0 0 0 0 0 0z"/></svg></div>
+            <span class="os-name">LINUX</span>
             <span class="os-detail" style="color: var(--accent);" data-i18n="dl_coming_soon2">Coming Soon</span>
         </div>
     </div>
@@ -1089,7 +1103,7 @@
             hero_subtitle: 'PDF veya DOCX y\u00fckleyin. Redakt, yerel bir yapay zeka modeli kullanarak ki\u015fisel verileri bulur ve karart\u0131r. Hi\u00e7bir \u015fey bilgisayar\u0131n\u0131zdan \u00e7\u0131kmaz. Asla.',
             hero_download: "Redakt'\u0131 \u0130ndir",
             hero_github: "GitHub'da G\u00f6r\u00fcnt\u00fcle",
-            hero_meta: 'MAC \u00b7 WINDOWS \u00b7 LINUX \u00b7 \u00dcCRETSIZ VE A\u00c7IK KAYNAK',
+            hero_meta_text: '\u00dcCRETSIZ VE A\u00c7IK KAYNAK',
 
             // Features
             feat_local_title: '%100 YEREL',
@@ -1109,7 +1123,7 @@
 
             // Section 2 - Arithmetic
             sec2_title: 'Korkutan aritmetik',
-            sec2_p1: 'O hissi bilirsiniz. Excel dosyas\u0131n\u0131 a\u00e7ars\u0131n\u0131z. Elli art\u0131 s\u00fctun. Sekiz y\u00fcz hasta. Her sat\u0131r bo\u015f, sizi bekliyor.',
+            sec2_p1: 'O hissi bilirsiniz. Excel dosyas\u0131n\u0131 a\u00e7ars\u0131n\u0131z. 50+ s\u00fctun. 800 hasta. Her sat\u0131r bo\u015f, sizi bekliyor.',
             sec2_math: '800 hasta \u00d7 50 s\u00fctun \u00d7 2\u20133 tu\u015f vuru\u015fu = ~100.000 tu\u015f vuru\u015fu<br>\u2026ve daha HBYS\u2019yi bile a\u00e7mad\u0131n\u0131z.',
             sec2_p2: 'Bir hasta dosyas\u0131n\u0131 a\u00e7mak ka\u00e7 t\u0131klama? Laboratuvar sonu\u00e7lar\u0131n\u0131 bulmak? Birimlerin veri setinizle e\u015fle\u015fti\u011fini do\u011frulamak? Kongre tarihine ka\u00e7 g\u00fcn kald\u0131? Yar\u0131s\u0131n\u0131 bir meslekta\u015f\u0131n\u0131za devredip sonra saatlerce tutars\u0131zl\u0131klar\u0131 m\u0131 d\u00fczeltmelisiniz?',
             sec2_p3: 'Bu sistem el yaz\u0131s\u0131 hasta notlar\u0131 d\u00f6neminden evrildi. Ka\u011f\u0131t dosyalar ve ar\u015fiv dolaplar\u0131 i\u00e7in tasarland\u0131. Dijital \u00e7a\u011fa de\u011fi\u015ftirmeden ta\u015f\u0131d\u0131k. Bunun durmas\u0131 gerekiyor.',
@@ -1357,8 +1371,8 @@
             statusDot.classList.remove('processing');
             statusText.textContent = isTR ? 'HAZIR' : 'READY';
             statusText.style.color = '';
-            leftLabel.textContent = isTR ? 'Belge metni' : 'Document text';
-            rightLabel.textContent = isTR ? 'Karart\u0131lm\u0131\u015f \u00f6nizleme' : 'Redacted preview';
+            leftLabel.textContent = isTR ? 'BELGE METNİ' : 'Document text';
+            rightLabel.textContent = isTR ? 'KARARTILMIŞ ÖNİZLEME' : 'Redacted preview';
             redactedPane.innerHTML = '<span style="color:#555">' + (isTR ? 'Karartılmış önizleme için \u201cTara\u201d ya basın.' : 'Click \u201cScan\u201d to preview redacted output.') + '</span>';
             // Restore original demo text
             document.getElementById('demo-text').innerHTML = origHTML;
@@ -1404,7 +1418,7 @@
                 scanBtn.textContent = isTR ? 'TARA' : 'SCAN FOR PII';
                 statusDot.classList.remove('processing');
                 const count = piiEls.length;
-                leftLabel.textContent = (isTR ? 'Belge metni' : 'Document text') + ' (' + count + (isTR ? ' KV' : ' PII') + ')';
+                leftLabel.textContent = (isTR ? 'BELGE METNİ' : 'Document text') + ' (' + count + (isTR ? ' KV' : ' PII') + ')';
                 statusText.textContent = count + (isTR ? ' kişisel veri bulundu' : ' PII entities found');
                 statusText.style.color = '#e78a4e';
                 await sleep(2200);
@@ -1413,7 +1427,7 @@
                 if (!running) return;
                 redactedPane.innerHTML = buildRedactedHTML();
                 chips.age.classList.add('visible');
-                rightLabel.textContent = (isTR ? 'Karart\u0131lm\u0131\u015f \u00f6nizleme' : 'Redacted preview') + ' (' + count + '/' + count + ')';
+                rightLabel.textContent = (isTR ? 'KARARTILMIŞ ÖNİZLEME' : 'Redacted preview') + ' (' + count + '/' + count + ')';
                 exportBtn.classList.add('ready');
                 statusText.textContent = isTR ? 'KARARTMA TAMAMLANDI' : 'REDACTION COMPLETE';
                 statusText.style.color = '#6bbd6b';
