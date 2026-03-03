@@ -64,7 +64,8 @@ from redakt.ui import theme as theme_module
 # ── Theme colors (fallback when theme_manager not yet initialized) ─────────
 _DARK = {
     "BG_DARKEST": "#111111", "BG_DARK": "#1a1a1a", "BG_MID": "#252525",
-    "BG_LIGHT": "#303030", "BG_LIGHTER": "#3d3d3d", "BORDER": "#333333",
+    "BG_LIGHT": "#303030", "BG_LIGHTER": "#3d3d3d",
+    "BORDER": "#333333", "BORDER_ACTIVE": "#555555",
     "TEXT": "#d4d4d4", "TEXT_DIM": "#808080", "TEXT_VDIM": "#555555",
     "ACCENT": "#e78a4e", "ACCENT_DIM": "#c47a42", "ERROR": "#d46b6b",
     "WARNING": "#d4a04e", "SUCCESS": "#6bbd6b", "BLUE": "#7aabdb",
@@ -160,17 +161,18 @@ class MainWindow(QMainWindow):
         # ── Titlebar ──
         titlebar = QWidget()
         titlebar.setObjectName("titlebar")
-        titlebar.setFixedHeight(38)
+        titlebar.setFixedHeight(36)
         titlebar.setStyleSheet(f"#titlebar {{ background: {_c()['BG_MID']}; }}")
         titlebar_layout = QHBoxLayout(titlebar)
-        titlebar_layout.setContentsMargins(8, 0, 8, 0)
+        titlebar_layout.setContentsMargins(10, 0, 10, 0)
         titlebar_layout.setSpacing(6)
 
         # Left: lang combo + settings button
         self.lang_combo = QComboBox()
         self.lang_combo.addItem("TR", Language.TR)
         self.lang_combo.addItem("EN", Language.EN)
-        self.lang_combo.setFixedWidth(50)
+        self.lang_combo.setFixedWidth(48)
+        self.lang_combo.setFixedHeight(22)
         self.lang_combo.currentIndexChanged.connect(self._relabel_ui)
         titlebar_layout.addWidget(self.lang_combo)
 
@@ -186,22 +188,22 @@ class MainWindow(QMainWindow):
         # Center: title + subtitle stacked
         title_block = QVBoxLayout()
         title_block.setSpacing(0)
-        title_block.setContentsMargins(0, 0, 0, 0)
+        title_block.setContentsMargins(0, 2, 0, 2)
 
         title = QLabel("REDAKT")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet(
             f"font-size: 12px; font-weight: bold; color: {_c()['ACCENT']}; "
-            f"letter-spacing: 2px;"
+            f"letter-spacing: 2.5px;"
         )
         title_block.addWidget(title)
 
-        subtitle = QLabel("LOCAL DE-IDENTIFICATION")
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet(
-            f"font-size: 9px; color: {_c()['TEXT_DIM']}; letter-spacing: 1.5px;"
+        self._subtitle = QLabel("LOCAL DE-IDENTIFICATION")
+        self._subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._subtitle.setStyleSheet(
+            f"font-size: 8px; color: {_c()['TEXT_DIM']}; letter-spacing: 1.5px;"
         )
-        title_block.addWidget(subtitle)
+        title_block.addWidget(self._subtitle)
 
         titlebar_layout.addLayout(title_block)
 
@@ -226,44 +228,44 @@ class MainWindow(QMainWindow):
             f"border-bottom: 1px solid {_c()['BORDER']}; }}"
         )
         toolbar_layout = QHBoxLayout(toolbar)
-        toolbar_layout.setContentsMargins(8, 4, 8, 4)
-        toolbar_layout.setSpacing(6)
+        toolbar_layout.setContentsMargins(10, 5, 10, 5)
+        toolbar_layout.setSpacing(5)
 
-        self.open_btn = QPushButton("OPEN FILE")
+        self.open_btn = QPushButton("OPEN")
         self.open_btn.setObjectName("secondary")
-        self.open_btn.setFixedHeight(26)
+        self.open_btn.setFixedHeight(24)
         self.open_btn.setToolTip("Open a medical document (PDF, DOCX, XLSX, or image)")
         self.open_btn.clicked.connect(self._open_file_dialog)
         toolbar_layout.addWidget(self.open_btn)
 
-        self.scan_btn = QPushButton("SCAN FOR PII")
+        self.scan_btn = QPushButton("SCAN")
         self.scan_btn.setToolTip("Run AI analysis to detect all personal data in the document")
         self.scan_btn.setObjectName("primary")
-        self.scan_btn.setFixedHeight(26)
+        self.scan_btn.setFixedHeight(24)
         self.scan_btn.clicked.connect(self._start_scan)
         toolbar_layout.addWidget(self.scan_btn)
 
         self.format_combo = QComboBox()
         for fmt in EXPORT_FORMATS:
             self.format_combo.addItem(fmt)
-        self.format_combo.setFixedWidth(90)
-        self.format_combo.setFixedHeight(26)
+        self.format_combo.setFixedWidth(80)
+        self.format_combo.setFixedHeight(24)
         toolbar_layout.addWidget(self.format_combo)
 
         self.export_btn = QPushButton("EXPORT")
         self.export_btn.setToolTip("Export the redacted document with PII removed")
-        self.export_btn.setFixedHeight(26)
+        self.export_btn.setFixedHeight(24)
         self.export_btn.clicked.connect(self._export_file)
         toolbar_layout.addWidget(self.export_btn)
 
         self.clear_btn = QPushButton("CLEAR")
         self.clear_btn.setObjectName("secondary")
-        self.clear_btn.setFixedHeight(26)
+        self.clear_btn.setFixedHeight(24)
         self.clear_btn.setToolTip("Close the current document and reset")
         self.clear_btn.clicked.connect(self._clear)
         toolbar_layout.addWidget(self.clear_btn)
 
-        toolbar_layout.addSpacing(12)
+        toolbar_layout.addSpacing(8)
 
         self.age_mode_cb = QCheckBox("AGE")
         self.age_mode_cb.setToolTip(
@@ -277,24 +279,24 @@ class MainWindow(QMainWindow):
         # Birth date display (shown when age conversion used a birth date)
         self._birth_date_label = QLabel()
         self._birth_date_label.setStyleSheet(
-            f"font-size: 10px; color: {_c()['TEXT_DIM']}; letter-spacing: 0.5px;"
+            f"font-size: 9px; color: {_c()['TEXT_DIM']}; letter-spacing: 0.5px;"
         )
         self._birth_date_value = QLabel()
         self._birth_date_value.setStyleSheet(
-            f"font-size: 10px; color: {_c()['TEXT']}; font-weight: 600;"
+            f"font-size: 9px; color: {_c()['TEXT']}; font-weight: 600;"
         )
         self._change_birth_btn = QPushButton()
         self._change_birth_btn.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {_c()['ACCENT']}; "
-            f"font-size: 10px; border: none; padding: 2px 6px; }}"
+            f"font-size: 9px; border: none; padding: 1px 4px; }}"
             f"QPushButton:hover {{ text-decoration: underline; }}"
         )
         self._change_birth_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._change_birth_btn.clicked.connect(self._on_change_birth_date)
         self._birth_date_widget = QWidget()
         birth_layout = QHBoxLayout(self._birth_date_widget)
-        birth_layout.setContentsMargins(4, 0, 0, 0)
-        birth_layout.setSpacing(4)
+        birth_layout.setContentsMargins(2, 0, 0, 0)
+        birth_layout.setSpacing(3)
         birth_layout.addWidget(self._birth_date_label)
         birth_layout.addWidget(self._birth_date_value)
         birth_layout.addWidget(self._change_birth_btn)
@@ -305,21 +307,21 @@ class MainWindow(QMainWindow):
 
         # Category chip container (populated after scan)
         self.chip_container = QHBoxLayout()
-        self.chip_container.setSpacing(4)
+        self.chip_container.setSpacing(3)
         toolbar_layout.addLayout(self.chip_container)
 
         # Select All / None buttons
-        self.select_all_btn = QPushButton("SELECT ALL")
+        self.select_all_btn = QPushButton("ALL")
         self.select_all_btn.setObjectName("secondary")
-        self.select_all_btn.setFixedHeight(20)
+        self.select_all_btn.setFixedHeight(18)
         self.select_all_btn.setToolTip("Enable all detected entities for redaction")
         self.select_all_btn.clicked.connect(self._select_all)
         self.select_all_btn.setVisible(False)
         toolbar_layout.addWidget(self.select_all_btn)
 
-        self.select_none_btn = QPushButton("SELECT NONE")
+        self.select_none_btn = QPushButton("NONE")
         self.select_none_btn.setObjectName("secondary")
-        self.select_none_btn.setFixedHeight(20)
+        self.select_none_btn.setFixedHeight(18)
         self.select_none_btn.setToolTip("Disable all entities (nothing will be redacted)")
         self.select_none_btn.clicked.connect(self._select_none)
         self.select_none_btn.setVisible(False)
@@ -345,11 +347,11 @@ class MainWindow(QMainWindow):
         # Left panel: original text with highlights
         left = QWidget()
         left_layout = QVBoxLayout(left)
-        left_layout.setContentsMargins(8, 8, 4, 0)
-        left_layout.setSpacing(4)
+        left_layout.setContentsMargins(12, 8, 4, 0)
+        left_layout.setSpacing(6)
         self.left_label = QLabel("DOCUMENT TEXT")
         self.left_label.setStyleSheet(
-            "font-size: 9px; color: {0}; font-weight: bold; letter-spacing: 1px;".format(_c()["TEXT_VDIM"])
+            "font-size: 9px; color: {0}; font-weight: bold; letter-spacing: 1.5px;".format(_c()["TEXT_VDIM"])
         )
         left_layout.addWidget(self.left_label)
         self.original_view = QTextBrowser()
@@ -360,11 +362,11 @@ class MainWindow(QMainWindow):
         # Right panel: redacted preview
         right = QWidget()
         right_layout = QVBoxLayout(right)
-        right_layout.setContentsMargins(4, 8, 8, 0)
-        right_layout.setSpacing(4)
+        right_layout.setContentsMargins(4, 8, 12, 0)
+        right_layout.setSpacing(6)
         self.right_label = QLabel("REDACTED PREVIEW")
         self.right_label.setStyleSheet(
-            "font-size: 9px; color: {0}; font-weight: bold; letter-spacing: 1px;".format(_c()["TEXT_VDIM"])
+            "font-size: 9px; color: {0}; font-weight: bold; letter-spacing: 1.5px;".format(_c()["TEXT_VDIM"])
         )
         right_layout.addWidget(self.right_label)
         self.redacted_view = QTextBrowser()
@@ -379,7 +381,7 @@ class MainWindow(QMainWindow):
         # ── Middle section: Entity panel (label + table) ──
         table_panel = QWidget()
         table_layout = QVBoxLayout(table_panel)
-        table_layout.setContentsMargins(8, 4, 8, 0)
+        table_layout.setContentsMargins(12, 6, 12, 0)
         table_layout.setSpacing(4)
 
         self.table_label = self._tech_label("Detected PII")
@@ -497,6 +499,7 @@ class MainWindow(QMainWindow):
         # Top bar
         self.settings_btn.setText(t("config", lang))
         self.settings_btn.setToolTip(t("tip_config", lang))
+        self._subtitle.setText(t("subtitle", lang))
 
         # File bar
         if not self._current_file:
@@ -646,6 +649,11 @@ class MainWindow(QMainWindow):
         # Titlebar background
         self._titlebar.setStyleSheet(f"#titlebar {{ background: {c['BG_MID']}; }}")
 
+        # Subtitle
+        self._subtitle.setStyleSheet(
+            f"font-size: 8px; color: {c['TEXT_DIM']}; letter-spacing: 1.5px;"
+        )
+
         # Toolbar border
         self._toolbar.setStyleSheet(
             f"#toolbar {{ background: {c['BG_DARK']}; "
@@ -665,20 +673,20 @@ class MainWindow(QMainWindow):
             )
 
         # Pane labels
-        pane_lbl_style = f"font-size: 9px; color: {c['TEXT_VDIM']}; font-weight: bold; letter-spacing: 1px;"
+        pane_lbl_style = f"font-size: 9px; color: {c['TEXT_VDIM']}; font-weight: bold; letter-spacing: 1.5px;"
         self.left_label.setStyleSheet(pane_lbl_style)
         self.right_label.setStyleSheet(pane_lbl_style)
 
         # Birth date widgets
         self._birth_date_label.setStyleSheet(
-            f"font-size: 10px; color: {c['TEXT_DIM']}; letter-spacing: 0.5px;"
+            f"font-size: 9px; color: {c['TEXT_DIM']}; letter-spacing: 0.5px;"
         )
         self._birth_date_value.setStyleSheet(
-            f"font-size: 10px; color: {c['TEXT']}; font-weight: 600;"
+            f"font-size: 9px; color: {c['TEXT']}; font-weight: 600;"
         )
         self._change_birth_btn.setStyleSheet(
             f"QPushButton {{ background: transparent; color: {c['ACCENT']}; "
-            f"font-size: 10px; border: none; padding: 2px 6px; }}"
+            f"font-size: 9px; border: none; padding: 1px 4px; }}"
             f"QPushButton:hover {{ text-decoration: underline; }}"
         )
 
@@ -760,8 +768,8 @@ class MainWindow(QMainWindow):
             char_count = 0
             self.file_label.setText(t("file_image", lang, name=path.name))
             self.file_label.setStyleSheet(
-                f"font-size: 11px; color: {_c()["TEXT"]}; padding: 4px 0; "
-                f"letter-spacing: 0.5px;"
+                f"font-size: 9px; color: {_c()["TEXT"]}; "
+                f"letter-spacing: 1px;"
             )
             self.left_label.setText(t("document_text", lang))
             img_msg = t("image_file_loaded", lang, name=_html.escape(path.name))
@@ -779,8 +787,8 @@ class MainWindow(QMainWindow):
                 t("file_chars", lang, name=path.name, count=f"{char_count:,}")
             )
             self.file_label.setStyleSheet(
-                f"font-size: 11px; color: {_c()["TEXT"]}; padding: 4px 0; "
-                f"letter-spacing: 0.5px;"
+                f"font-size: 9px; color: {_c()["TEXT"]}; "
+                f"letter-spacing: 1px;"
             )
             self.left_label.setText(
                 t("doc_text_chars", lang, count=f"{char_count:,}")
@@ -1298,21 +1306,46 @@ class MainWindow(QMainWindow):
             btn = QPushButton(label)
             btn.setCheckable(True)
             btn.setChecked(True)
-            btn.setFixedHeight(20)
-            btn.setStyleSheet(
-                f"QPushButton {{ background: {color}22; color: {color}; "
-                f"border: 1px solid {color}55; "
-                f"border-radius: 2px; padding: 0 8px; font-size: 9px; "
-                f"font-weight: bold; letter-spacing: 0.5px; }}"
-                f"QPushButton:hover {{ background: {color}44; }}"
-                f"QPushButton:!checked {{ background: {_c()['BG_LIGHT']}; "
-                f"color: {_c()['TEXT_VDIM']}; border-color: {_c()['BORDER']}; }}"
-            )
+            btn.setFixedHeight(18)
+            btn.setStyleSheet(self._chip_style(color, "checked"))
             btn.clicked.connect(
                 lambda checked, c=cat: self._on_category_toggled(c, checked)
             )
             self.chip_container.addWidget(btn)
             self._category_chips[cat] = btn
+
+    @staticmethod
+    def _chip_style(color: str, state: str = "checked") -> str:
+        """Return QSS for a category chip matching the manifesto demo style."""
+        if state == "checked":
+            return (
+                f"QPushButton {{ background: {color}55; color: {color}; "
+                f"border: 1px solid {color}88; "
+                f"border-radius: 2px; padding: 1px 7px; font-size: 8px; "
+                f"font-weight: bold; letter-spacing: 0.5px; }}"
+                f"QPushButton:hover {{ background: {color}77; }}"
+                f"QPushButton:!checked {{ background: {_c()['BG_LIGHT']}; "
+                f"color: {_c()['TEXT_VDIM']}; border-color: {_c()['BORDER']}; }}"
+            )
+        elif state == "partial":
+            return (
+                f"QPushButton {{ background: {color}33; color: {color}aa; "
+                f"border: 1px solid {color}55; "
+                f"border-radius: 2px; padding: 1px 7px; font-size: 8px; "
+                f"font-weight: bold; letter-spacing: 0.5px; }}"
+                f"QPushButton:hover {{ background: {color}55; }}"
+                f"QPushButton:!checked {{ background: {_c()['BG_LIGHT']}; "
+                f"color: {_c()['TEXT_VDIM']}; border-color: {_c()['BORDER']}; }}"
+            )
+        else:
+            return (
+                f"QPushButton {{ background: {_c()['BG_LIGHT']}; "
+                f"color: {_c()['TEXT_VDIM']}; "
+                f"border: 1px solid {_c()['BORDER']}; "
+                f"border-radius: 2px; padding: 1px 7px; font-size: 8px; "
+                f"font-weight: bold; letter-spacing: 0.5px; }}"
+                f"QPushButton:hover {{ border-color: {_c()['BORDER_ACTIVE']}; }}"
+            )
 
     def _clear_category_chips(self):
         """Remove all category chip buttons."""
@@ -1358,29 +1391,13 @@ class MainWindow(QMainWindow):
         btn.setChecked(all_on)
         btn.blockSignals(False)
 
-        # Visual hint for partial selection
         color = CATEGORY_COLORS.get(category, _c()["ACCENT"])
         if all_on:
-            btn.setStyleSheet(
-                f"QPushButton {{ background: {color}55; color: #ffffff; "
-                f"border: 1px solid {color}88; "
-                f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
-                f"font-weight: bold; letter-spacing: 0.5px; }}"
-                f"QPushButton:hover {{ background: {color}77; }}"
-                f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
-                f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
-            )
+            btn.setStyleSheet(self._chip_style(color, "checked"))
         elif any_on:
-            # Partial: dimmed version of category color
-            btn.setStyleSheet(
-                f"QPushButton {{ background: {color}33; color: #ffffffaa; "
-                f"border: 1px solid {color}55; "
-                f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
-                f"font-weight: bold; letter-spacing: 0.5px; }}"
-                f"QPushButton:hover {{ background: {color}55; }}"
-                f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
-                f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
-            )
+            btn.setStyleSheet(self._chip_style(color, "partial"))
+        else:
+            btn.setStyleSheet(self._chip_style(color, "unchecked"))
 
     def _update_chip_labels(self):
         """Update chip text to reflect active count."""
@@ -1391,7 +1408,7 @@ class MainWindow(QMainWindow):
                 1 for i, e in enumerate(self._entities)
                 if e.category == cat and self._entity_enabled[i]
             )
-            btn.setText(f"{label} ({active}/{total})")
+            btn.setText(f"{label} {active}/{total}")
 
     # ── Select All / None ──
 

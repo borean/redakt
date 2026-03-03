@@ -178,7 +178,7 @@ def render_highlighted_html(text: str, spans: list[TextSpan]) -> str:
             f'<a name="e{i}"></a>'
             f'<span style="background-color: {color}22; color: {color}; '
             f"border: 1px solid {color}66; "
-            f"padding: 1px 5px; border-radius: 2px; font-weight: 600;\" "
+            f"padding: 0 3px; border-radius: 2px; font-weight: 600;\" "
             f'title="{_html.escape(cat_label)}: {_html.escape(span.entity.placeholder)}">'
             f"{_html.escape(span.entity.original)}</span>"
         )
@@ -188,7 +188,7 @@ def render_highlighted_html(text: str, spans: list[TextSpan]) -> str:
     return (
         '<pre style="white-space: pre-wrap; word-wrap: break-word; '
         "font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace; "
-        'margin: 0; line-height: 1.8; color: #d4d4d4; font-size: 12px;">'
+        'margin: 0; line-height: 1.85; color: #d4d4d4; font-size: 12px;">'
         + body
         + "</pre>"
     )
@@ -225,7 +225,7 @@ def render_redacted_html(text: str, spans: list[TextSpan], age_mode: bool = Fals
     return (
         '<pre style="white-space: pre-wrap; word-wrap: break-word; '
         "font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, Consolas, monospace; "
-        'margin: 0; line-height: 1.8; color: #d4d4d4; font-size: 12px;">'
+        'margin: 0; line-height: 1.85; color: #d4d4d4; font-size: 12px;">'
         + body
         + "</pre>"
     )

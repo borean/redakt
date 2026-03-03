@@ -18,8 +18,9 @@ class StatusBar(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.setFixedHeight(28)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 5, 12, 5)
+        layout.setContentsMargins(10, 0, 10, 0)
 
         # Translatable status texts (updated via set_translations)
         self._t_ready = "READY"
@@ -32,7 +33,7 @@ class StatusBar(QWidget):
         self._status_dot.setFixedSize(6, 6)
         layout.addWidget(self._status_dot)
 
-        layout.addSpacing(4)
+        layout.addSpacing(5)
 
         self._status_label = QLabel(self._t_ready)
         layout.addWidget(self._status_label)
@@ -51,11 +52,11 @@ class StatusBar(QWidget):
             f"background-color: {c['SUCCESS']}; border-radius: 3px;"
         )
         self._status_label.setStyleSheet(
-            f"color: {c['TEXT_DIM']}; font-size: 9px; letter-spacing: 1px;"
+            f"color: {c['TEXT_DIM']}; font-size: 9px; letter-spacing: 0.8px;"
         )
         self._local_badge.setStyleSheet(
             f"color: {c['SUCCESS']}; font-size: 8px; font-weight: bold; "
-            f"letter-spacing: 1.5px; border: 1px solid {c['SUCCESS']}40; "
+            f"letter-spacing: 1.5px; border: 1px solid {c['SUCCESS']}44; "
             f"border-radius: 2px; padding: 1px 6px;"
         )
         self.setStyleSheet(

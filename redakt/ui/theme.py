@@ -121,21 +121,21 @@ def _style_params(style: str) -> dict:
             "table_size": 12,
             "text_browser_size": 13,
         }
-    else:  # terminal
+    else:  # terminal — compact, matches manifesto demo
         return {
             "font": _FONT_TERMINAL,
             "font_mono": _FONT_TERMINAL,
-            "base_size": 12,
-            "small_size": 11,
+            "base_size": 11,
+            "small_size": 10,
             "tiny_size": 9,
-            "btn_size": 11,
-            "btn_padding": "6px 16px",
-            "radius": 3,
+            "btn_size": 10,
+            "btn_padding": "5px 14px",
+            "radius": 4,
             "small_radius": 2,
-            "label_spacing": "2px",
+            "label_spacing": "1px",
             "section_spacing": "1px",
             "hint_style": "font-style: italic;",
-            "header_size": 10,
+            "header_size": 9,
             "table_size": 11,
             "text_browser_size": 12,
         }
@@ -162,13 +162,14 @@ QLabel {{
 
 QPushButton {{
     background-color: {c["BG_MID"]};
-    color: {c["TEXT_PRIMARY"]};
+    color: {c["TEXT_SECONDARY"]};
     border: 1px solid {c["BORDER"]};
     border-radius: {s["radius"]}px;
     padding: {s["btn_padding"]};
     font-size: {s["btn_size"]}px;
     font-family: {s["font"]};
     font-weight: 500;
+    letter-spacing: 0.5px;
 }}
 
 QPushButton:hover {{
@@ -214,10 +215,10 @@ QPushButton#primary:disabled {{
 
 QComboBox {{
     background-color: {c["BG_MID"]};
-    color: {c["TEXT_PRIMARY"]};
+    color: {c["TEXT_SECONDARY"]};
     border: 1px solid {c["BORDER"]};
-    border-radius: {s["radius"]}px;
-    padding: 4px 8px;
+    border-radius: {s["small_radius"]}px;
+    padding: 3px 8px;
     font-family: {s["font"]};
     font-size: {s["small_size"]}px;
 }}
@@ -250,15 +251,15 @@ QComboBox QAbstractItemView {{
 QProgressBar {{
     background-color: {c["BG_MID"]};
     border: none;
-    border-radius: 2px;
-    height: 4px;
+    border-radius: 1px;
+    height: 3px;
     text-align: center;
     color: transparent;
 }}
 
 QProgressBar::chunk {{
     background-color: {c["ACCENT"]};
-    border-radius: 2px;
+    border-radius: 1px;
 }}
 
 /* ── ScrollArea / ScrollBar ───────────────────────────────── */
@@ -314,22 +315,22 @@ QTableWidget {{
     background-color: {c["BG_DARK"]};
     color: {c["TEXT_PRIMARY"]};
     border: 1px solid {c["BORDER"]};
-    border-radius: {s["radius"]}px;
+    border-radius: {s["small_radius"]}px;
     gridline-color: {c["BG_MID"]};
     font-family: {s["font"]};
     font-size: {s["table_size"]}px;
-    selection-background-color: {c["ACCENT"]}33;
+    selection-background-color: {c["ACCENT"]}22;
     selection-color: {c["TEXT_PRIMARY"]};
     alternate-background-color: {c["BG_MID"]};
 }}
 
 QTableWidget::item {{
-    padding: 5px 8px;
-    border-bottom: 1px solid {c["BORDER"]}44;
+    padding: 4px 8px;
+    border-bottom: 1px solid {c["BORDER"]}33;
 }}
 
 QTableWidget::item:selected {{
-    background-color: {c["ACCENT"]}33;
+    background-color: {c["ACCENT"]}22;
     color: {c["TEXT_PRIMARY"]};
 }}
 
@@ -337,9 +338,9 @@ QHeaderView::section {{
     background-color: {c["BG_MID"]};
     color: {c["TEXT_DIM"]};
     border: none;
-    border-bottom: 2px solid {c["BORDER"]};
+    border-bottom: 1px solid {c["BORDER"]};
     border-right: 1px solid {c["BG_DARK"]};
-    padding: 8px 8px;
+    padding: 6px 8px;
     font-size: {s["header_size"]}px;
     font-weight: bold;
     letter-spacing: {s["label_spacing"]};
@@ -421,14 +422,14 @@ QRadioButton::indicator:hover {{
 
 QCheckBox {{
     color: {c["TEXT_PRIMARY"]};
-    spacing: 6px;
+    spacing: 4px;
     font-family: {s["font"]};
-    font-size: {s["base_size"]}px;
+    font-size: {s["small_size"]}px;
 }}
 
 QCheckBox::indicator {{
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
     border: 1px solid {c["BORDER"]};
     border-radius: {s["small_radius"]}px;
     background: {c["BG_MID"]};
@@ -440,17 +441,17 @@ QCheckBox::indicator:checked {{
 }}
 
 QCheckBox::indicator:hover {{
-    border-color: {c["ACCENT"]};
+    border-color: {c["BORDER_ACTIVE"]};
 }}
 
 /* ── Splitter ─────────────────────────────────────────────── */
 
 QSplitter::handle {{
-    background-color: {c["BORDER"]};
+    background-color: {c["BG_MID"]};
 }}
 
 QSplitter::handle:hover {{
-    background-color: {c["ACCENT"]};
+    background-color: {c["BORDER"]};
 }}
 
 QSplitter::handle:horizontal {{
@@ -467,7 +468,7 @@ QTextBrowser {{
     background-color: {c["BG_DARK"]};
     color: {c["TEXT_PRIMARY"]};
     border: 1px solid {c["BORDER"]};
-    border-radius: {s["radius"]}px;
+    border-radius: {s["small_radius"]}px;
     padding: 12px;
     font-family: {s["font_mono"]};
     font-size: {s["text_browser_size"]}px;
@@ -510,13 +511,13 @@ QPushButton#secondary {{
     border: 1px solid {c["BORDER"]};
     border-radius: {s["small_radius"]}px;
     font-size: {s["tiny_size"]}px;
-    padding: 4px 12px;
+    padding: 3px 10px;
     letter-spacing: 0.5px;
 }}
 
 QPushButton#secondary:hover {{
     color: {c["TEXT_PRIMARY"]};
-    border-color: {c["ACCENT"]};
+    border-color: {c["BORDER_ACTIVE"]};
 }}
 
 /* ── Titlebar / Toolbar (manifesto demo layout) ──────────── */
