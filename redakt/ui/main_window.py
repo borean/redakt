@@ -488,8 +488,12 @@ class MainWindow(QMainWindow):
     @property
     def _lang(self):
         """Current UI language from the language combo."""
-        data = self.lang_combo.currentData()
-        return data if data else Language.EN
+        combo = getattr(self, "lang_combo", None)
+        if combo is not None:
+            data = combo.currentData()
+            if data:
+                return data
+        return Language.EN
 
     def _relabel_ui(self):
         """Update all UI text to the current language."""
