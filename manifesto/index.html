@@ -1120,17 +1120,17 @@
             sec3_p2: 'Ama bu, otomasyonun \u00f6n\u00fcnde bir engel de\u011fil. Bir tasar\u0131m k\u0131s\u0131tlamas\u0131.',
             sec3_p3: 'Anonimle\u015ftirme otomatikle\u015ftirilebilir. Verileri b\u00fcy\u00fck yapay zeka \u015firketlerinin bulut modellerine g\u00f6ndererek de\u011fil. Kendi bilgisayar\u0131n\u0131zda \u2014 ya da hastanenizin bilgisayar\u0131nda \u2014 \u00e7al\u0131\u015fan k\u00fc\u00e7\u00fck, h\u0131zl\u0131 modellerle. Bunlar ucuz, kan\u0131tlanm\u0131\u015f \u00e7\u00f6z\u00fcmler. Sadece hen\u00fcz yayg\u0131n olarak uygulanmad\u0131lar.',
             sec3_p4: 'Hi\u00e7bir otomatik sistem tek ba\u015f\u0131na her \u015feyi yakalayamaz \u2014 bu y\u00fczden insan denetim ad\u0131m\u0131 tasar\u0131ma dahil. \u00c7\u0131kt\u0131y\u0131 ilerlemeden \u00f6nce siz do\u011frulars\u0131n\u0131z. Bu tasar\u0131m\u0131n bir par\u00e7as\u0131, bir s\u0131n\u0131rlama de\u011fil.',
-            sec3_p5: 'Veriler d\u00fczg\u00fcn bir \u015fekilde anonimle\u015ftirildikten sonra, t\u00fcm a\u015fa\u011f\u0131 ak\u0131\u015f boru hatt\u0131 a\u00e7\u0131l\u0131r.',
+            sec3_p5: 'Veriler d\u00fczg\u00fcn bir \u015fekilde anonimle\u015ftirildikten sonra, t\u00fcm s\u00fcrec\u00e7 a\u00e7\u0131l\u0131r.',
 
             // Section 4 - Key insight
             sec4_title: 'Temel i\u00e7g\u00f6r\u00fc',
             sec4_highlight: "LLM'e t\u0131bbi karar verdirmiyorsunuz. Onu iyi oldu\u011fu i\u015fe ko\u015fuyorsunuz \u2014 kod yazmak, veri ta\u015f\u0131mak, metin aramak \u2014 klinik muhakemenize hizmet etmesi i\u00e7in.",
-            sec4_p1: "LLM'ler deterministik de\u011fildir. Kimse \u00f6yle olduklar\u0131n\u0131 iddia etmiyor. Ama yazd\u0131klar\u0131 kod deterministiktir. Cox regresyonu \u00e7al\u0131\u015ft\u0131ran bir Python beti\u011fi her seferinde ayn\u0131 sonucu verir. LLM mimard\u0131r. Makine hesap makinesidir. Bilim insan\u0131 sizsiniz.",
+            sec4_p1: "LLM'ler deterministik de\u011fildir. Kimse \u00f6yle olduklar\u0131n\u0131 iddia etmiyor. Ama yazd\u0131klar\u0131 kod deterministiktir. Cox regresyonu \u00e7al\u0131\u015ft\u0131ran bir Python script\u2019i her seferinde ayn\u0131 sonucu verir. LLM mimard\u0131r. Makine hesap makinesidir. Bilim insan\u0131 sizsiniz.",
             sec4_p2: 'Devasa bir veri setinin her h\u00fccresine elle veri girmek ne verimli ne de g\u00fcvenlidir. \u0130nsanlar hata yapmaya e\u011filmlidir. Test edilmi\u015f, deterministik sistemler de\u011fildir. Ve LLM ajanlar\u0131 bu sistemleri \u2014 sizin \u00f6zel ara\u015ft\u0131rma ihtiya\u00e7lar\u0131n\u0131za \u00f6zelle\u015ftirilmi\u015f olarak \u2014 kurabilir.',
             sec4_principles: '<strong>Temel ilkeler:</strong><br>Klinisyenler d\u00fc\u015f\u00fcn\u00fcr \u2014 makineler tekrarlayan i\u015fleri yapar.<br>\u00d6nce gizlilik: yerel model, bulut yok, istisna yok.<br>Her otomatik ad\u0131m denetlenebilir ve geri al\u0131nabilir olmal\u0131.<br>Ara\u00e7lar sizin i\u015f ak\u0131\u015f\u0131n\u0131za hizmet etmeli, m\u00fchendislerin varsay\u0131mlar\u0131na de\u011fil.',
 
             // Section 5 - Pipeline
-            sec5_title: 'Boru hatt\u0131',
+            sec5_title: 'S\u00fcrec\u00e7',
             sec5_intro: 'Ham kay\u0131tlardan makaleye kadar t\u00fcm ara\u015ft\u0131rma i\u015f ak\u0131\u015f\u0131 yeniden yap\u0131land\u0131r\u0131labilir:',
             step1_title: 'Ham metni \u00e7\u0131kar',
             step1_desc: "HBYS'den hasta dosyalarını çekin \u2014 epikrizler, laboratuvar raporları, görüntüleme raporları. Sadece OCR ve metin ayrıştırma. LLM yok. Bulut yok. Sadece ham belgeler.",
@@ -1141,7 +1141,7 @@
             step4_title: 'Do\u011frula',
             step4_desc: 'Birim d\u00f6n\u00fc\u015f\u00fcm\u00fc, aral\u0131k kontrolleri, tekille\u015ftirme. Kural tabanl\u0131. LLM gerekmez.',
             step5_title: 'Analiz et',
-            step5_desc: 'Ajan taraf\u0131ndan yaz\u0131lan istatistiksel betikler \u2014 scipy, lifelines, statsmodels \u2014 her seferinde ayn\u0131 \u015fekilde \u00e7al\u0131\u015f\u0131r. Kodu \u00e7al\u0131\u015fmadan \u00f6nce siz incelersiniz.',
+            step5_desc: 'Ajan taraf\u0131ndan yaz\u0131lan istatistiksel script\u2019ler \u2014 scipy, lifelines, statsmodels \u2014 her seferinde ayn\u0131 \u015fekilde \u00e7al\u0131\u015f\u0131r. Kodu \u00e7al\u0131\u015fmadan \u00f6nce siz incelersiniz.',
             step6_title: 'Yorumla',
             step6_desc: 'Biyoistatistik bilgisi olan bir ajanla sonu\u00e7lar\u0131 tart\u0131\u015f\u0131n. Yineleyin. Yeni a\u00e7\u0131lar edinin. \u00c7al\u0131\u015fmay\u0131 g\u00fc\u00e7lendirecek ek verileri belirleyin.',
             step7_title: 'Literat\u00fcr taramas\u0131',
@@ -1152,7 +1152,7 @@
 
             // Section 6 - Why now
             sec6_title: 'Neden \u015fimdi \u00f6nemli',
-            sec6_p1: "Bu boru hatt\u0131n\u0131n her ad\u0131m\u0131n\u0131n teknolojisi bug\u00fcn mevcut. Yerel dil modelleri, yap\u0131land\u0131r\u0131lm\u0131\u015f \u00e7\u0131kar\u0131m, otomatik istatistik, literat\u00fcr tarama API'leri, at\u0131f do\u011frulama. Bunlar\u0131n hi\u00e7biri spek\u00fclatif de\u011fil.",
+            sec6_p1: "Bu s\u00fcrec\u00e7in her ad\u0131m\u0131n\u0131n teknolojisi bug\u00fcn mevcut. Yerel dil modelleri, yap\u0131land\u0131r\u0131lm\u0131\u015f \u00e7\u0131kar\u0131m, otomatik istatistik, literat\u00fcr tarama API'leri, at\u0131f do\u011frulama. Bunlar\u0131n hi\u00e7biri spek\u00fclatif de\u011fil.",
             sec6_p2: 'Eksik olan, do\u011fru y\u00f6nden gelen uygulama. Bu alandaki \u00e7o\u011fu ara\u00e7, doktorlar\u0131n neye ihtiyac\u0131 oldu\u011funu tahmin eden m\u00fchendisler taraf\u0131ndan yap\u0131lm\u0131\u015f. Yanl\u0131\u015f \u015feyleri optimize ediyorlar. \u0130\u015f ak\u0131\u015f\u0131n\u0131 ka\u00e7\u0131r\u0131yorlar. G\u00fcnlerinizi ger\u00e7ekte hangi ad\u0131mlar\u0131n t\u00fcketti\u011fini anlam\u0131yorlar.',
             sec6_p3: 'Arac\u0131 bir klinisyen in\u015fa etti\u011finde, \u00f6ncelikler farkl\u0131d\u0131r. Aray\u00fcz, verileriniz hakk\u0131nda ger\u00e7ekte nas\u0131l d\u00fc\u015f\u00fcnd\u00fc\u011f\u00fcn\u00fczle e\u015fle\u015fir. K\u0131s\u0131tlamalar ger\u00e7ek d\u00fczenleyici gereksinimleri yans\u0131t\u0131r, varsay\u0131msal olanlar\u0131 de\u011fil. \u00c7\u0131kt\u0131, kongre ba\u015fvurusu i\u00e7in ger\u00e7ekten ihtiyac\u0131n\u0131z olan \u015feydir, yat\u0131r\u0131mc\u0131lar i\u00e7in bir demo de\u011fil.',
 
