@@ -27,13 +27,12 @@ class PIIResponse(BaseModel):
     summary: str = Field(default="", description="Brief summary of what was found")
 
     @staticmethod
-    def ollama_json_schema() -> dict:
+    def llm_json_schema() -> dict:
         """Return a flattened JSON schema without $ref/$defs.
 
-        Ollama's constrained decoding can fail with Pydantic's default
-        ``model_json_schema()`` because of ``$ref`` references.  This
-        method inlines the ``PIIEntity`` definition directly so ollama
-        can parse it correctly.
+        Some LLM APIs fail with Pydantic's default ``model_json_schema()``
+        because of ``$ref`` references. This method inlines the ``PIIEntity``
+        definition directly for constrained decoding.
         """
         return {
             "type": "object",

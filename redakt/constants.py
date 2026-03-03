@@ -1,22 +1,14 @@
 from enum import Enum
 
-# ── Backend configuration ────────────────────────────────────────────
+# ── Backend (llama.cpp only — no user setup required) ─────────────────
 
 class Backend(str, Enum):
-    OLLAMA = "ollama"
     LLAMACPP = "llamacpp"
-
-
-# Ollama backend
-OLLAMA_HOST = "http://localhost:11434"
-DEFAULT_MODEL = "qwen3:30b-a3b"
-VISION_MODEL = "qwen3-vl:8b"
-Q8_MODEL = "qwen3:30b-a3b-q8_0"
-DEV_MODEL_FP16 = "qwen3:30b-a3b-fp16"
 
 # llama.cpp backend (serves Qwen3.5 via llama-server)
 LLAMACPP_HOST = "http://localhost:8081"
 LLAMACPP_MODEL = "Qwen3.5-35B-A3B-Q4_K_M"
+LLAMACPP_API_MODEL = "qwen"  # Model name sent in API requests
 
 # GGUF model download configuration
 GGUF_HF_REPO = "unsloth/Qwen3.5-35B-A3B-GGUF"

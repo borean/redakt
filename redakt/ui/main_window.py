@@ -1303,11 +1303,11 @@ class MainWindow(QMainWindow):
             btn.setChecked(True)
             btn.setFixedHeight(22)
             btn.setStyleSheet(
-                f"QPushButton {{ background: {color}33; color: {color}; "
-                f"border: 1px solid {color}66; "
+                f"QPushButton {{ background: {color}55; color: #ffffff; "
+                f"border: 1px solid {color}88; "
                 f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
                 f"font-weight: bold; letter-spacing: 0.5px; }}"
-                f"QPushButton:hover {{ background: {color}55; }}"
+                f"QPushButton:hover {{ background: {color}77; }}"
                 f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
                 f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
             )
@@ -1365,22 +1365,22 @@ class MainWindow(QMainWindow):
         color = CATEGORY_COLORS.get(category, _c()["ACCENT"])
         if all_on:
             btn.setStyleSheet(
-                f"QPushButton {{ background: {color}33; color: {color}; "
-                f"border: 1px solid {color}66; "
+                f"QPushButton {{ background: {color}55; color: #ffffff; "
+                f"border: 1px solid {color}88; "
                 f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
                 f"font-weight: bold; letter-spacing: 0.5px; }}"
-                f"QPushButton:hover {{ background: {color}55; }}"
+                f"QPushButton:hover {{ background: {color}77; }}"
                 f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
                 f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
             )
         elif any_on:
             # Partial: dimmed version of category color
             btn.setStyleSheet(
-                f"QPushButton {{ background: {color}18; color: {color}88; "
-                f"border: 1px solid {color}44; "
+                f"QPushButton {{ background: {color}33; color: #ffffffaa; "
+                f"border: 1px solid {color}55; "
                 f"border-radius: 2px; padding: 0 10px; font-size: 10px; "
                 f"font-weight: bold; letter-spacing: 0.5px; }}"
-                f"QPushButton:hover {{ background: {color}33; }}"
+                f"QPushButton:hover {{ background: {color}55; }}"
                 f"QPushButton:!checked {{ background: {_c()["BG_LIGHT"]}; "
                 f"color: {_c()["TEXT_VDIM"]}; border-color: {_c()["BORDER"]}; }}"
             )

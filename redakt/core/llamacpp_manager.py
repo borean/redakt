@@ -2,15 +2,13 @@
 
 The manager can:
 - Locate the ``llama-server`` binary (Homebrew, PATH, custom)
-- Locate the GGUF model file automatically from ollama's blob store,
-  or from well-known directories — zero manual setup needed
+- Locate the GGUF model file from download dir or well-known directories
 - Start llama-server as a child process with the correct flags
 - Wait for the ``/health`` endpoint to become ready
 - Stop the server gracefully on app exit
 """
 
 import asyncio
-import json as _json
 import os
 import shutil
 import signal
@@ -28,18 +26,6 @@ from redakt.constants import LLAMACPP_HOST, LLAMACPP_MODEL
 
 _GGUF_FILENAME = f"{LLAMACPP_MODEL}.gguf"
 
-# The ollama model tag we pull from HuggingFace
-_OLLAMA_HF_MANIFEST = (
-    Path.home()
-    / ".ollama"
-    / "models"
-    / "manifests"
-    / "hf.co"
-    / "unsloth"
-    / "Qwen3.5-35B-A3B-GGUF"
-    / "Q4_K_M"
-)
-
 # Explicit directories to check (in priority order)
 _GGUF_SEARCH_DIRS: list[Path] = [
     # Platform-appropriate data dir (primary — where downloads go)
@@ -50,40 +36,8 @@ _GGUF_SEARCH_DIRS: list[Path] = [
 ]
 
 
-def _find_gguf_in_ollama() -> Path | None:
-    """Read the ollama manifest and return the blob path for the GGUF layer.
-
-    When a user runs ``ollama pull hf.co/unsloth/Qwen3.5-35B-A3B-GGUF:Q4_K_M``,
-    ollama stores the GGUF as a blob under ``~/.ollama/models/blobs/``.
-    The manifest tells us which blob corresponds to the model weights.
-    """
-    if not _OLLAMA_HF_MANIFEST.exists():
-        return None
-
-    try:
-        manifest = _json.loads(_OLLAMA_HF_MANIFEST.read_text())
-        for layer in manifest.get("layers", []):
-            media = layer.get("mediaType", "")
-            if "model" in media and "projector" not in media:
-                digest: str = layer["digest"]  # e.g. "sha256:e8c60ba..."
-                # Ollama stores blobs as ~/.ollama/models/blobs/<digest>
-                # with ":" replaced by "-"
-                blob = (
-                    Path.home()
-                    / ".ollama"
-                    / "models"
-                    / "blobs"
-                    / digest.replace(":", "-")
-                )
-                if blob.exists():
-                    return blob
-    except Exception:
-        pass
-    return None
-
-
 def _find_gguf() -> Path | None:
-    """Search for the GGUF: first in download dir, then ollama blobs, then well-known dirs."""
+    """Search for the GGUF: download dir first, then well-known dirs."""
     # 0. Check the platform download directory first (where download_manager saves)
     try:
         from redakt.core.download_manager import get_data_dir
@@ -95,12 +49,7 @@ def _find_gguf() -> Path | None:
     except Exception:
         pass
 
-    # 1. Auto-discover from ollama's blob store (zero-config)
-    blob = _find_gguf_in_ollama()
-    if blob:
-        return blob
-
-    # 2. Check explicit directories for a named .gguf file
+    # 1. Check explicit directories for a named .gguf file
     for d in _GGUF_SEARCH_DIRS:
         candidate = d / _GGUF_FILENAME
         if candidate.exists():
@@ -120,28 +69,6 @@ class GGUFInfo:
     source: str  # "auto-discovered" or "local"
 
 
-def _resolve_ollama_manifest(manifest_path: Path) -> Path | None:
-    """Read an ollama manifest and return the blob path for the model layer."""
-    try:
-        manifest = _json.loads(manifest_path.read_text())
-        for layer in manifest.get("layers", []):
-            media = layer.get("mediaType", "")
-            if "model" in media and "projector" not in media:
-                digest = layer["digest"]
-                blob = (
-                    Path.home()
-                    / ".ollama"
-                    / "models"
-                    / "blobs"
-                    / digest.replace(":", "-")
-                )
-                if blob.exists():
-                    return blob
-    except Exception:
-        pass
-    return None
-
-
 # Known quantization identifiers for filename matching
 _KNOWN_QUANTS = (
     "Q4_K_M", "Q8_0", "Q4_K_S", "Q5_K_M", "Q5_K_S",
@@ -150,71 +77,75 @@ _KNOWN_QUANTS = (
 )
 
 
-def find_all_ggufs() -> list[GGUFInfo]:
-    """Discover all available GGUF model files.
+def _friendly_gguf_name(stem: str, size_gb: float, quant: str) -> str:
+    """Generate a friendly display name for a GGUF file.
 
-    Searches two sources:
-    1. Ollama manifests — each file under the manifest directory represents
-       a quantization (Q4_K_M, Q8_0, etc.) pulled via
-       ``ollama pull hf.co/unsloth/Qwen3.5-35B-A3B-GGUF:<quant>``.
-    2. Local directories listed in ``_GGUF_SEARCH_DIRS`` for any ``.gguf`` files.
+    If the filename is a SHA hash or otherwise opaque, produce a name like
+    "Qwen3.5 35B-A3B Q4_K_M" based on size and quant.
     """
+    # Detect opaque filenames: SHA hashes, UUIDs, etc.
+    is_opaque = (
+        stem.startswith("sha256-")
+        or stem.startswith("sha512-")
+        or (len(stem) > 40 and all(c in "0123456789abcdef-" for c in stem.lower()))
+    )
+    if not is_opaque:
+        return stem
+
+    # Build friendly name from the model identity in constants
+    quant_label = quant if quant != "Unknown" else ""
+    return f"Qwen3.5 35B-A3B {quant_label}".strip()
+
+
+def find_all_ggufs() -> list[GGUFInfo]:
+    """Discover all available GGUF model files from download dir and well-known dirs."""
     results: list[GGUFInfo] = []
     seen_paths: set[str] = set()
 
-    # 1. Check ollama manifests for multiple quantizations
-    manifest_parent = (
-        Path.home()
-        / ".ollama"
-        / "models"
-        / "manifests"
-        / "hf.co"
-        / "unsloth"
-        / "Qwen3.5-35B-A3B-GGUF"
-    )
-    if manifest_parent.exists():
-        for entry in sorted(manifest_parent.iterdir()):
-            if not entry.is_file():
-                continue
-            quant_name = entry.name  # e.g. "Q4_K_M", "Q8_0"
-            blob_path = _resolve_ollama_manifest(entry)
-            if blob_path and str(blob_path) not in seen_paths:
-                size_gb = blob_path.stat().st_size / (1024**3)
-                results.append(
-                    GGUFInfo(
-                        path=blob_path,
-                        name=f"Qwen3.5 35B-A3B {quant_name}",
-                        quant=quant_name,
-                        size_gb=round(size_gb, 1),
-                        source="auto-discovered",
-                    )
-                )
-                seen_paths.add(str(blob_path))
+    def _make_info(gguf_file: Path, source: str) -> GGUFInfo:
+        size_gb = gguf_file.stat().st_size / (1024**3)
+        fname_upper = gguf_file.stem.upper()
+        quant = "Unknown"
+        for q in _KNOWN_QUANTS:
+            if q in fname_upper:
+                quant = q
+                break
+        # Infer quant from file size if filename is opaque
+        if quant == "Unknown":
+            if 18 <= size_gb <= 24:
+                quant = "Q4_K_M"
+            elif 30 <= size_gb <= 38:
+                quant = "Q8_0"
+        name = _friendly_gguf_name(gguf_file.stem, size_gb, quant)
+        return GGUFInfo(
+            path=gguf_file,
+            name=name,
+            quant=quant,
+            size_gb=round(size_gb, 1),
+            source=source,
+        )
 
-    # 2. Scan local directories for .gguf files
+    # 0. Download directory first
+    try:
+        from redakt.core.download_manager import get_data_dir
+
+        data_dir = get_data_dir()
+        if data_dir.exists():
+            for gguf_file in sorted(data_dir.glob("*.gguf"), key=lambda p: p.stat().st_size, reverse=True):
+                if str(gguf_file) not in seen_paths:
+                    results.append(_make_info(gguf_file, "local"))
+                    seen_paths.add(str(gguf_file))
+    except Exception:
+        pass
+
+    # 1. Scan local directories for .gguf files
     for search_dir in _GGUF_SEARCH_DIRS:
         if not search_dir.exists():
             continue
         for gguf_file in sorted(search_dir.glob("*.gguf")):
             if str(gguf_file) in seen_paths:
                 continue
-            size_gb = gguf_file.stat().st_size / (1024**3)
-            # Try to extract quantization from filename
-            fname_upper = gguf_file.stem.upper()
-            quant = "Unknown"
-            for q in _KNOWN_QUANTS:
-                if q in fname_upper:
-                    quant = q
-                    break
-            results.append(
-                GGUFInfo(
-                    path=gguf_file,
-                    name=gguf_file.stem,
-                    quant=quant,
-                    size_gb=round(size_gb, 1),
-                    source="local",
-                )
-            )
+            results.append(_make_info(gguf_file, "local"))
             seen_paths.add(str(gguf_file))
 
     return results
@@ -300,8 +231,36 @@ class LlamaCppManager(QObject):
         return self.gguf_path is not None
 
     def get_available_ggufs(self) -> list[GGUFInfo]:
-        """Return all discovered GGUF models."""
-        return find_all_ggufs()
+        """Return all discovered GGUF models, including current path if set."""
+        results = find_all_ggufs()
+        # Include current gguf_path if it exists and isn't already in the list
+        if self._gguf_path and self._gguf_path.exists():
+            path_str = str(self._gguf_path)
+            if not any(str(r.path) == path_str for r in results):
+                size_gb = self._gguf_path.stat().st_size / (1024**3)
+                fname_upper = self._gguf_path.stem.upper()
+                quant = "Unknown"
+                for q in _KNOWN_QUANTS:
+                    if q in fname_upper:
+                        quant = q
+                        break
+                if quant == "Unknown":
+                    if 18 <= size_gb <= 24:
+                        quant = "Q4_K_M"
+                    elif 30 <= size_gb <= 38:
+                        quant = "Q8_0"
+                name = _friendly_gguf_name(self._gguf_path.stem, size_gb, quant)
+                results.insert(
+                    0,
+                    GGUFInfo(
+                        path=self._gguf_path,
+                        name=name,
+                        quant=quant,
+                        size_gb=round(size_gb, 1),
+                        source="current",
+                    ),
+                )
+        return results
 
     def set_gguf(self, info: GGUFInfo):
         """Set the active GGUF model file. Restarts server if running."""
