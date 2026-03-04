@@ -74,6 +74,19 @@ Kurallar:
 
 ÖNEMLİ: Cevabını "entities" dizisi ve "summary" alanı içeren geçerli bir JSON nesnesi olarak döndür. Tüm anahtar ve değerlerde çift tırnak kullan. Markdown fence kullanma, sonda virgül bırakma."#;
 
+/// Truncate text to fit within context window.
+/// With 32K context, ~4K for system prompt + output, leaves ~28K tokens (~100K chars) for input.
+fn truncate_for_context(text: &str, max_chars: usize) -> &str {
+    if text.len() <= max_chars {
+        return text;
+    }
+    // Find the last complete line within the limit
+    match text[..max_chars].rfind('\n') {
+        Some(pos) => &text[..pos],
+        None => &text[..max_chars],
+    }
+}
+
 /// Run the full PII detection pipeline
 pub async fn detect_pii(
     llm: &LlmState,
@@ -87,15 +100,19 @@ pub async fn detect_pii(
         SYSTEM_PROMPT_EN
     };
 
+    // Truncate very long documents to stay within context window
+    // 32K context ≈ 100K chars max, minus system prompt and output headroom
+    let safe_text = truncate_for_context(text, 90_000);
+
     let user_prompt = if language == "tr" {
         format!(
             "Aşağıdaki tıbbi belge metnindeki tüm kişisel verileri tespit et:\n\n---\n{}\n---",
-            text
+            safe_text
         )
     } else {
         format!(
             "Detect all personally identifiable information in the following medical document text:\n\n---\n{}\n---",
-            text
+            safe_text
         )
     };
 

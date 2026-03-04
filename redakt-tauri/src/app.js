@@ -19,6 +19,7 @@ const state = {
     downloadingModelId: null,
     downloadingModelName: null,
     downloadPercent: 0,
+    activeModelName: null,
 };
 
 // ── i18n ──
@@ -117,6 +118,15 @@ function t(key) {
     return translations[state.language]?.[key] || translations.en[key] || key;
 }
 
+function readyText() {
+    if (state.activeModelName) {
+        return state.language === 'tr'
+            ? `${state.activeModelName} KULLANILIYOR`
+            : `USING ${state.activeModelName}`;
+    }
+    return t('ready');
+}
+
 function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
@@ -135,7 +145,7 @@ function setLanguage(lang) {
 
     // Restore status text
     if (!state.scanning && !state.scanned) {
-        document.getElementById('status-text').textContent = t('ready');
+        document.getElementById('status-text').textContent = readyText();
     }
 }
 
@@ -195,7 +205,7 @@ async function loadFile(path) {
         document.getElementById('left-label').textContent = t('doc_text');
         document.getElementById('right-label').textContent = t('redacted_preview');
 
-        setStatus('ready', t('ready'));
+        setStatus('ready', readyText());
     } catch (err) {
         setStatus('error', err.toString());
     }
@@ -621,7 +631,7 @@ document.getElementById('btn-clear').addEventListener('click', () => {
     document.getElementById('btn-select-all').style.display = 'none';
     document.getElementById('btn-select-none').style.display = 'none';
 
-    setStatus('ready', t('ready'));
+    setStatus('ready', readyText());
 });
 
 // ── Settings dialog ──
@@ -674,7 +684,7 @@ async function populateModels() {
                         : `Switching model: ${model.name}...`);
                     try {
                         await invoke('switch_model', { modelId: model.id });
-                        setStatus('ready', t('ready'));
+                        setStatus('ready', readyText());
                         await populateModels(); // Refresh catalog
                     } catch (err) {
                         setStatus('error', err.toString());
@@ -717,7 +727,8 @@ async function downloadAndSwitchModel(modelId, modelName) {
             ? `Model yükleniyor: ${modelName}...`
             : `Loading model: ${modelName}...`);
         await invoke('switch_model', { modelId });
-        setStatus('ready', t('ready'));
+        state.activeModelName = modelName;
+        setStatus('ready', readyText());
 
         // Refresh settings if dialog is open
         if (document.getElementById('settings-overlay').style.display === 'flex') {
@@ -840,24 +851,26 @@ function escapeHtml(text) {
 // ── Auto-start LLM server ──
 async function autoStartServer() {
     try {
-        // Check if already running
-        const status = await invoke('get_llm_status');
-        if (status.running) {
-            setStatus('ready', t('ready'));
-            return;
-        }
-
         // Load settings to get selected model
         const settings = await invoke('get_settings');
         const selectedModelId = settings.selected_model || '4b';
 
+        // Resolve display name from catalog
+        const catalog = await invoke('get_model_catalog');
+        const modelInfo = catalog.find(m => m.id === selectedModelId);
+        const modelName = modelInfo ? modelInfo.name : `Qwen 3.5 ${selectedModelId.toUpperCase()}`;
+
+        // Check if already running
+        const status = await invoke('get_llm_status');
+        if (status.running) {
+            state.activeModelName = modelName;
+            setStatus('ready', readyText());
+            return;
+        }
+
         // Check if the selected model is downloaded
         const needsDownload = await invoke('needs_model_download');
         if (needsDownload) {
-            // Auto-download the selected model
-            const catalog = await invoke('get_model_catalog');
-            const modelInfo = catalog.find(m => m.id === selectedModelId);
-            const modelName = modelInfo ? modelInfo.name : `Qwen 3.5 ${selectedModelId}`;
             await downloadAndSwitchModel(selectedModelId, modelName);
             return;
         }
@@ -866,15 +879,16 @@ async function autoStartServer() {
         const modelPath = await invoke('get_default_model_path');
 
         setStatus('processing', state.language === 'tr'
-            ? `Model yükleniyor...`
-            : `Loading model...`);
+            ? `${modelName} yükleniyor...`
+            : `Loading ${modelName}...`);
 
         await invoke('start_llm_server', {
             modelPath,
             serverPath: null,
         });
 
-        setStatus('ready', t('ready'));
+        state.activeModelName = modelName;
+        setStatus('ready', readyText());
     } catch (err) {
         console.error('Auto-start failed:', err);
         setStatus('error', err.toString());

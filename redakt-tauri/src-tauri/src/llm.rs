@@ -134,7 +134,7 @@ impl LlmState {
             .arg("-ngl")
             .arg("99") // Offload all layers to GPU
             .arg("-c")
-            .arg("8192") // 8K context window
+            .arg("32768") // 32K context window
             .arg("--port")
             .arg("8081")
             .arg("-fa")
@@ -213,7 +213,7 @@ impl LlmState {
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.1,
-            "max_tokens": 8192,
+            "max_tokens": 4096,
             "response_format": {"type": "json_object"}
         });
 
@@ -226,7 +226,53 @@ impl LlmState {
             .map_err(|e| format!("LLM request failed: {}", e))?;
 
         if !resp.status().is_success() {
-            return Err(format!("LLM returned status {}", resp.status()));
+            let status = resp.status();
+            let body_text = resp.text().await.unwrap_or_default();
+            eprintln!("LLM error {}: {}", status, body_text);
+
+            // If 400, try again without response_format (some models/versions don't support it)
+            if status == reqwest::StatusCode::BAD_REQUEST {
+                let fallback_body = serde_json::json!({
+                    "model": "qwen",
+                    "messages": [
+                        {"role": "system", "content": format!("{}\n\nYou MUST respond with valid JSON only. No markdown, no extra text.", system_prompt)},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 4096
+                });
+
+                let resp2 = client
+                    .post(format!("{}/v1/chat/completions", API_BASE))
+                    .json(&fallback_body)
+                    .timeout(Duration::from_secs(300))
+                    .send()
+                    .await
+                    .map_err(|e| format!("LLM fallback request failed: {}", e))?;
+
+                if !resp2.status().is_success() {
+                    let s2 = resp2.status();
+                    let b2 = resp2.text().await.unwrap_or_default();
+                    return Err(format!("LLM returned status {} — {}", s2, b2));
+                }
+
+                let json: serde_json::Value = resp2
+                    .json()
+                    .await
+                    .map_err(|e| format!("Failed to parse LLM response: {}", e))?;
+
+                let content = json["choices"][0]["message"]["content"]
+                    .as_str()
+                    .unwrap_or("");
+
+                if !content.is_empty() {
+                    return Ok(content.to_string());
+                }
+
+                return Err("Empty content in LLM fallback response".to_string());
+            }
+
+            return Err(format!("LLM returned status {} — {}", status, body_text));
         }
 
         let json: serde_json::Value = resp
