@@ -213,7 +213,7 @@ impl LlmState {
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.1,
-            "max_tokens": 4096,
+            "max_tokens": 8192,
             "response_format": {"type": "json_object"}
         });
 
@@ -260,8 +260,6 @@ fn get_model_search_dirs() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
 
     if let Some(home) = dirs::home_dir() {
-        // User's Downloads folder (common for first download)
-        dirs.push(home.join("Downloads"));
         // Dedicated model directories
         dirs.push(home.join(".redakt").join("models"));
         dirs.push(home.join("models"));

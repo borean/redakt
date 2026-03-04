@@ -122,6 +122,35 @@ pub async fn detect_pii(
     Ok(entities)
 }
 
+/// Convert LlmEntity vec to PIIEntity vec (shared by all parse paths)
+fn convert_llm_entities(ents: Vec<LlmEntity>) -> Vec<PIIEntity> {
+    ents.into_iter()
+        .filter_map(|e| {
+            let original = e.original?.trim().to_string();
+            if original.is_empty() {
+                return None;
+            }
+            let raw_cat = e.category?;
+            let category = normalize_category(&raw_cat).to_string();
+            let subcategory = if raw_cat.to_lowercase() != category {
+                Some(raw_cat.to_lowercase())
+            } else {
+                None
+            };
+            Some(PIIEntity {
+                original,
+                category,
+                subcategory,
+                placeholder: String::new(),
+                confidence: e.confidence.unwrap_or(0.9),
+                enabled: true,
+                start: None,
+                end: None,
+            })
+        })
+        .collect()
+}
+
 fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
     // Strip <think>...</think> blocks (Qwen 3.5 thinking tokens)
     let mut text = raw.to_string();
@@ -146,34 +175,7 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
     // Try to parse as-is
     if let Ok(resp) = serde_json::from_str::<LlmPIIResponse>(cleaned) {
         if let Some(ents) = resp.entities {
-            return Ok(ents
-                .into_iter()
-                .filter_map(|e| {
-                    let original = e.original?.trim().to_string();
-                    if original.is_empty() {
-                        return None;
-                    }
-                    let raw_cat = e.category?;
-                    let category = normalize_category(&raw_cat).to_string();
-                    // Preserve the raw LLM category as subcategory
-                    // (e.g. "date_of_birth" → category="date", subcategory="date_of_birth")
-                    let subcategory = if raw_cat.to_lowercase() != category {
-                        Some(raw_cat.to_lowercase())
-                    } else {
-                        None
-                    };
-                    Some(PIIEntity {
-                        original,
-                        category,
-                        subcategory,
-                        placeholder: String::new(),
-                        confidence: e.confidence.unwrap_or(0.9),
-                        enabled: true,
-                        start: None,
-                        end: None,
-                    })
-                })
-                .collect());
+            return Ok(convert_llm_entities(ents));
         }
     }
 
@@ -183,6 +185,7 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
         // Find matching close bracket
         let mut depth = 0;
         let mut end_idx = from_bracket.len();
+        let mut found_close = false;
         for (i, ch) in from_bracket.char_indices() {
             match ch {
                 '[' => depth += 1,
@@ -190,6 +193,7 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
                     depth -= 1;
                     if depth == 0 {
                         end_idx = i + 1;
+                        found_close = true;
                         break;
                     }
                 }
@@ -203,32 +207,49 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
             .replace_all(array_str, "]");
 
         if let Ok(ents) = serde_json::from_str::<Vec<LlmEntity>>(&fixed) {
-            return Ok(ents
-                .into_iter()
-                .filter_map(|e| {
-                    let original = e.original?.trim().to_string();
-                    if original.is_empty() {
-                        return None;
+            return Ok(convert_llm_entities(ents));
+        }
+
+        // If the array wasn't closed, the response was truncated.
+        // Salvage complete entity objects by finding individual {...} blocks.
+        if !found_close {
+            let mut salvaged = Vec::new();
+            let mut search_start = 0;
+            let bytes = from_bracket.as_bytes();
+            while search_start < bytes.len() {
+                if let Some(obj_start) = from_bracket[search_start..].find('{') {
+                    let abs_start = search_start + obj_start;
+                    let mut d = 0;
+                    let mut obj_end = None;
+                    for (i, ch) in from_bracket[abs_start..].char_indices() {
+                        match ch {
+                            '{' => d += 1,
+                            '}' => {
+                                d -= 1;
+                                if d == 0 {
+                                    obj_end = Some(abs_start + i + 1);
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
                     }
-                    let raw_cat = e.category?;
-                    let category = normalize_category(&raw_cat).to_string();
-                    let subcategory = if raw_cat.to_lowercase() != category {
-                        Some(raw_cat.to_lowercase())
+                    if let Some(oe) = obj_end {
+                        let obj_str = &from_bracket[abs_start..oe];
+                        if let Ok(e) = serde_json::from_str::<LlmEntity>(obj_str) {
+                            salvaged.push(e);
+                        }
+                        search_start = oe;
                     } else {
-                        None
-                    };
-                    Some(PIIEntity {
-                        original,
-                        category,
-                        subcategory,
-                        placeholder: String::new(),
-                        confidence: e.confidence.unwrap_or(0.9),
-                        enabled: true,
-                        start: None,
-                        end: None,
-                    })
-                })
-                .collect());
+                        break; // Incomplete object — stop
+                    }
+                } else {
+                    break;
+                }
+            }
+            if !salvaged.is_empty() {
+                return Ok(convert_llm_entities(salvaged));
+            }
         }
     }
 
