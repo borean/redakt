@@ -1,6 +1,7 @@
 use crate::anonymizer;
 use crate::download;
 use crate::entities::{AppSettings, LlmStatus, ModelCatalogEntry, PIIEntity, ScanResult};
+use crate::export;
 use crate::llm::LlmState;
 use crate::redactor;
 use tauri::State;
@@ -29,12 +30,15 @@ pub async fn open_file(path: String) -> Result<String, String> {
 pub async fn scan_document(
     text: String,
     language: String,
+    age_mode: Option<bool>,
     llm: State<'_, LlmState>,
 ) -> Result<ScanResult, String> {
     let mut entities = anonymizer::detect_pii(&llm, &text, &language).await?;
 
-    // Apply age conversion (converts date placeholders to age-relative)
-    anonymizer::apply_age_conversion(&mut entities, &text, &language);
+    // Apply age conversion only when enabled (defaults to true)
+    if age_mode.unwrap_or(true) {
+        anonymizer::apply_age_conversion(&mut entities, &text, &language);
+    }
 
     let highlighted = redactor::render_highlighted_html(&text, &entities);
     let redacted = redactor::render_redacted_html(&text, &entities);
@@ -99,15 +103,15 @@ pub async fn export_document(
     format: String,
     output_path: String,
 ) -> Result<String, String> {
-    let redacted = redactor::render_redacted_plain(&text, &entities);
-
     match format.as_str() {
         "txt" => {
+            let redacted = redactor::render_redacted_plain(&text, &entities);
             std::fs::write(&output_path, &redacted)
                 .map_err(|e| format!("Failed to write file: {}", e))?;
             Ok(output_path)
         }
         "md" => {
+            let redacted = redactor::render_redacted_plain(&text, &entities);
             let md = format!(
                 "# Redacted Document\n\n{}\n\n---\n*De-identified by Redakt*\n",
                 redacted
@@ -116,15 +120,48 @@ pub async fn export_document(
                 .map_err(|e| format!("Failed to write file: {}", e))?;
             Ok(output_path)
         }
-        "pdf" | "docx" => {
-            // For PDF/DOCX, export as TXT with the selected extension
-            // (full PDF/DOCX generation is planned for a future release)
-            std::fs::write(&output_path, &redacted)
-                .map_err(|e| format!("Failed to write file: {}", e))?;
+        "pdf" => {
+            export::export_pdf(&text, &entities, &output_path)?;
+            Ok(output_path)
+        }
+        "docx" => {
+            export::export_docx(&text, &entities, &output_path)?;
             Ok(output_path)
         }
         _ => Err(format!("Unsupported export format: {}", format)),
     }
+}
+
+/// Recalculate entities with age mode toggled (no re-scan needed)
+#[tauri::command]
+pub fn recalc_age_mode(
+    text: String,
+    mut entities: Vec<PIIEntity>,
+    age_mode: bool,
+    language: String,
+) -> Result<ScanResult, String> {
+    // Reset all date entity placeholders to standard [DATE_N] format
+    anonymizer::reassign_placeholders(&mut entities);
+
+    // If age mode is on, apply age conversion
+    if age_mode {
+        anonymizer::apply_age_conversion(&mut entities, &text, &language);
+    }
+
+    let highlighted = redactor::render_highlighted_html(&text, &entities);
+    let redacted = redactor::render_redacted_html(&text, &entities);
+
+    let enabled = entities.iter().filter(|e| e.enabled).count();
+    let total = entities.len();
+    let summary = format!("{}/{} entities enabled", enabled, total);
+
+    Ok(ScanResult {
+        entities,
+        original_text: text,
+        highlighted_html: highlighted,
+        redacted_html: redacted,
+        summary,
+    })
 }
 
 /// Get the current LLM server status

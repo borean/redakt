@@ -309,9 +309,11 @@ document.getElementById('btn-scan').addEventListener('click', async () => {
     document.getElementById('progress-bar').classList.add('active');
 
     try {
+        const ageChecked = document.getElementById('chk-age').checked;
         const result = await invoke('scan_document', {
             text: state.originalText,
             language: state.language,
+            ageMode: ageChecked,
         });
 
         state.entities = result.entities;
@@ -497,6 +499,27 @@ document.getElementById('btn-select-none').addEventListener('click', () => {
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     refreshViews();
     buildEntityTable();
+});
+
+// ── Age conversion toggle ──
+document.getElementById('chk-age').addEventListener('change', async (e) => {
+    if (!state.scanned || state.entities.length === 0) return;
+
+    try {
+        const result = await invoke('recalc_age_mode', {
+            text: state.originalText,
+            entities: state.entities,
+            ageMode: e.target.checked,
+            language: state.language,
+        });
+
+        state.entities = result.entities;
+        document.getElementById('document-text').innerHTML = result.highlighted_html;
+        document.getElementById('redacted-preview').innerHTML = result.redacted_html;
+        buildEntityTable();
+    } catch (err) {
+        console.error('Age mode toggle failed:', err);
+    }
 });
 
 // ── Refresh both panes after toggle changes ──
@@ -939,7 +962,11 @@ function updateDownloadProgress(percent, speedMbps, etaSecs, downloaded, total) 
 
     const pct = Math.round(percent * 10) / 10;
     pctEl.textContent = `${pct}%`;
-    barEl.style.width = `${pct}%`;
+    if (barEl) {
+        barEl.style.width = `${pct}%`;
+        // Force repaint to ensure bar renders in WebKit
+        barEl.offsetWidth;
+    }
 
     // Format sizes
     const dlGB = (downloaded / 1_073_741_824).toFixed(2);

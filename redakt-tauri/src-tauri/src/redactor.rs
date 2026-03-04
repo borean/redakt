@@ -145,6 +145,22 @@ pub fn render_redacted_html(text: &str, entities: &[PIIEntity]) -> String {
     html
 }
 
+/// Render plain text with placeholder tags for document export (PDF/DOCX)
+/// Uses [NAME_1], [DATE_2] etc. instead of block characters for readability
+pub fn render_redacted_tagged(text: &str, entities: &[PIIEntity]) -> String {
+    let mut result = text.to_string();
+
+    // Sort entities by length descending to replace longest first
+    let mut sorted: Vec<&PIIEntity> = entities.iter().filter(|e| e.enabled).collect();
+    sorted.sort_by(|a, b| b.original.len().cmp(&a.original.len()));
+
+    for entity in sorted {
+        result = result.replace(&entity.original, &entity.placeholder);
+    }
+
+    result
+}
+
 /// Render plain text with block characters for export
 pub fn render_redacted_plain(text: &str, entities: &[PIIEntity]) -> String {
     let mut result = text.to_string();

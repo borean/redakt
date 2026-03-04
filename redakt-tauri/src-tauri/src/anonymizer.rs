@@ -253,6 +253,64 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
         }
     }
 
+    // Fallback: try to parse as flat key-value objects where keys are category names.
+    // Small models (0.8B) sometimes return: {"entities": [{"name": "John", "date": "01.01.2000", ...}]}
+    if let Some(start) = cleaned.find("[") {
+        let from_bracket = &cleaned[start..];
+        if let Ok(flat_objs) = serde_json::from_str::<Vec<serde_json::Map<String, serde_json::Value>>>(from_bracket)
+            .or_else(|_| {
+                // Try fixing truncated array
+                let mut s = from_bracket.to_string();
+                if !s.trim().ends_with(']') {
+                    // Find last complete object
+                    if let Some(last_close) = s.rfind('}') {
+                        s.truncate(last_close + 1);
+                        s.push(']');
+                    }
+                }
+                let fixed = regex::Regex::new(r",\s*\]").unwrap().replace_all(&s, "]");
+                serde_json::from_str::<Vec<serde_json::Map<String, serde_json::Value>>>(&fixed)
+            })
+        {
+            let mut entities = Vec::new();
+            for obj in &flat_objs {
+                for (key, value) in obj {
+                    let val_str = match value {
+                        serde_json::Value::String(s) => s.trim().to_string(),
+                        serde_json::Value::Number(n) => n.to_string(),
+                        _ => continue,
+                    };
+                    if val_str.is_empty() {
+                        continue;
+                    }
+                    // Skip non-PII keys like "summary", "count", etc.
+                    let category = normalize_category(key);
+                    // Only accept known PII categories
+                    if !crate::entities::CATEGORIES.contains(&category) {
+                        continue;
+                    }
+                    entities.push(PIIEntity {
+                        original: val_str,
+                        category: category.to_string(),
+                        subcategory: if key.to_lowercase() != category {
+                            Some(key.to_lowercase())
+                        } else {
+                            None
+                        },
+                        placeholder: String::new(),
+                        confidence: 0.7, // Lower confidence for flat-format responses
+                        enabled: true,
+                        start: None,
+                        end: None,
+                    });
+                }
+            }
+            if !entities.is_empty() {
+                return Ok(entities);
+            }
+        }
+    }
+
     // Include a snippet of the raw response for debugging
     let raw_preview: String = raw.chars().take(300).collect();
     Err(format!("Failed to parse LLM response as JSON. Raw response: {}", raw_preview))
@@ -299,6 +357,12 @@ fn regex_supplement(text: &str, _language: &str) -> Vec<PIIEntity> {
     }
 
     entities
+}
+
+/// Public re-assign: clear all placeholders and re-number from scratch.
+/// Used when toggling age mode (to reset date placeholders before optionally re-applying age conversion).
+pub fn reassign_placeholders(entities: &mut Vec<PIIEntity>) {
+    assign_placeholders(entities);
 }
 
 /// Assign unique placeholders like [AD_1], [TARİH_2]

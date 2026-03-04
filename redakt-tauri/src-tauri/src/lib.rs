@@ -1,6 +1,7 @@
 mod commands;
 mod download;
 mod entities;
+mod export;
 mod llm;
 mod anonymizer;
 mod redactor;
@@ -28,6 +29,7 @@ pub fn run() {
             commands::get_default_model_path,
             commands::get_model_catalog,
             commands::switch_model,
+            commands::recalc_age_mode,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
