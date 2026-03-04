@@ -477,6 +477,39 @@ class Anonymizer:
             ))
         return entities
 
+    # Regex patterns that indicate a date (not a phone number)
+    _DATE_LIKE_RE = re.compile(
+        r"(?:"
+        # DD.MM.YYYY or DD/MM/YYYY or DD-MM-YYYY (with optional trailing hour)
+        r"\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4}"
+        r"|"
+        # YYYY-MM-DD (ISO)
+        r"\d{4}-\d{1,2}-\d{1,2}"
+        r"|"
+        # YYYY/MM/DD
+        r"\d{4}/\d{1,2}/\d{1,2}"
+        r")"
+    )
+
+    def _reclassify_misidentified_entities(
+        self, entities: list[PIIEntity]
+    ) -> list[PIIEntity]:
+        """Reclassify entities that the LLM mis-categorized.
+
+        Common case: dates with appended hours (e.g. '23.01.2023 11') get
+        tagged as 'phone' because they look numeric.  If the entity text
+        contains a parseable date pattern, reclassify it as 'date'.
+        """
+        for entity in entities:
+            if entity.category == "phone" and self._DATE_LIKE_RE.search(entity.original):
+                log.info(
+                    "Reclassifying phone→date: %r (contains date pattern)",
+                    entity.original,
+                )
+                entity.category = "date"
+                entity.subcategory = "date"
+        return entities
+
     def _supplement_with_regex(self, result: PIIResponse, text: str) -> PIIResponse:
         """Add entities the LLM missed using regex patterns.
 
@@ -530,6 +563,9 @@ class Anonymizer:
 
         # Supplement: add entities the LLM missed (TC Kimlik, etc.)
         result = self._supplement_with_regex(result, text)
+
+        # Fix misclassified entities (dates tagged as phone, etc.)
+        self._reclassify_misidentified_entities(result.entities)
 
         return self._normalize_entities(result)
 

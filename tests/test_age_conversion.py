@@ -533,3 +533,76 @@ class TestRedactionRendering:
         result = render_redacted_html(text, spans, age_mode=True)
         assert "12 ya" in result  # "yaş" may be HTML-escaped
         assert "█" in result  # birth date still blocked
+
+
+# ── Reclassify date-like phone entities ──────────────────────────────────
+
+
+class TestReclassifyPhoneAsDates:
+    """LLM sometimes tags 'DD.MM.YYYY HH' patterns as phone.
+
+    Post-processing should reclassify these back to date.
+    """
+
+    def test_date_with_hour_reclassified(self, anon_tr):
+        """'23.01.2023 11' should be reclassified from phone to date."""
+        entities = [
+            PIIEntity(original="23.01.2023 11", category="phone", placeholder="[PHONE_1]"),
+        ]
+        result = anon_tr._reclassify_misidentified_entities(entities)
+        assert result[0].category == "date"
+
+    def test_date_with_hour_colon_reclassified(self, anon_tr):
+        """'12.06.2023 18:30' should be reclassified from phone to date."""
+        entities = [
+            PIIEntity(original="12.06.2023 18:30", category="phone", placeholder="[PHONE_1]"),
+        ]
+        result = anon_tr._reclassify_misidentified_entities(entities)
+        assert result[0].category == "date"
+
+    def test_plain_date_reclassified(self, anon_tr):
+        """'20.03.2023' tagged as phone should be reclassified to date."""
+        entities = [
+            PIIEntity(original="20.03.2023", category="phone", placeholder="[PHONE_1]"),
+        ]
+        result = anon_tr._reclassify_misidentified_entities(entities)
+        assert result[0].category == "date"
+
+    def test_real_phone_not_reclassified(self, anon_tr):
+        """Actual phone number should stay as phone."""
+        entities = [
+            PIIEntity(original="0532 123 4567", category="phone", placeholder="[PHONE_1]"),
+        ]
+        result = anon_tr._reclassify_misidentified_entities(entities)
+        assert result[0].category == "phone"
+
+    def test_mixed_entities(self, anon_tr):
+        """Mix of real phones and date-like phones: only dates reclassified."""
+        entities = [
+            PIIEntity(original="23.01.2023 11", category="phone", placeholder="[PHONE_1]"),
+            PIIEntity(original="0532 123 4567", category="phone", placeholder="[PHONE_2]"),
+            PIIEntity(original="26.12.2022 15", category="phone", placeholder="[PHONE_3]"),
+            PIIEntity(original="Ahmet Yılmaz", category="name", placeholder="[AD_1]"),
+        ]
+        result = anon_tr._reclassify_misidentified_entities(entities)
+        assert result[0].category == "date"
+        assert result[1].category == "phone"
+        assert result[2].category == "date"
+        assert result[3].category == "name"
+
+    def test_version_like_not_reclassified(self, anon_tr):
+        """'1.5 05.10.2022' — compound with version number stays phone or gets reclassified."""
+        entities = [
+            PIIEntity(original="1.5 05.10.2022", category="phone", placeholder="[PHONE_1]"),
+        ]
+        result = anon_tr._reclassify_misidentified_entities(entities)
+        # Contains a date pattern so should be reclassified
+        assert result[0].category == "date"
+
+    def test_iso_date_reclassified(self, anon_tr):
+        """'2023-01-15' tagged as phone should be reclassified."""
+        entities = [
+            PIIEntity(original="2023-01-15", category="phone", placeholder="[PHONE_1]"),
+        ]
+        result = anon_tr._reclassify_misidentified_entities(entities)
+        assert result[0].category == "date"

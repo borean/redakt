@@ -1,6 +1,7 @@
 {
+  "$schema": "https://raw.githubusercontent.com/nicegui-org/nicegui/main/.schemas/tauri-v2/capability.schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
+  "description": "Redakt default capabilities",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -14,11 +15,32 @@
     "fs:allow-write",
     "fs:allow-exists",
     "fs:allow-mkdir",
+    "fs:allow-remove",
+    "fs:allow-rename",
+    "fs:allow-copy-file",
     "fs:allow-stat",
     "shell:default",
-    "shell:allow-spawn",
-    "shell:allow-execute",
-    "shell:allow-stdin-write",
-    "shell:allow-kill"
+    "shell:allow-open",
+    "core:window:default",
+    "core:window:allow-set-title",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:webview:default",
+    "core:event:default",
+    "core:event:allow-listen",
+    "core:event:allow-emit",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$TEMP/**" },
+        { "path": "/tmp/**" }
+      ]
+    }
   ]
 }

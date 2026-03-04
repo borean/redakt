@@ -62,15 +62,46 @@ pub async fn scan_document(
         map
     };
 
-    let summary = format!(
-        "{} PII entities found: {}",
-        entities.len(),
-        category_counts
-            .iter()
-            .map(|(k, v)| format!("{} {}", v, k))
-            .collect::<Vec<_>>()
-            .join(", ")
-    );
+    // Localized category names for the summary
+    let cat_label = |cat: &str| -> &str {
+        if language == "tr" {
+            match cat {
+                "name" => "ad",
+                "date" => "tarih",
+                "id" => "kimlik",
+                "address" => "adres",
+                "phone" => "telefon",
+                "email" => "e-posta",
+                "institution" => "kurum",
+                "age" => "yaş",
+                _ => cat,
+            }
+        } else {
+            cat
+        }
+    };
+
+    let summary = if language == "tr" {
+        format!(
+            "{} KV tespit edildi: {}",
+            entities.len(),
+            category_counts
+                .iter()
+                .map(|(k, v)| format!("{} {}", v, cat_label(k)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    } else {
+        format!(
+            "{} PII entities found: {}",
+            entities.len(),
+            category_counts
+                .iter()
+                .map(|(k, v)| format!("{} {}", v, k))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    };
 
     Ok(ScanResult {
         entities,

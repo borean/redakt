@@ -4,138 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Redakt</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app">
 
-    <!-- Titlebar -->
-    <div id="titlebar">
-        <div class="titlebar-left">
-            <select id="lang-select">
-                <option value="en">EN</option>
-                <option value="tr">TR</option>
-            </select>
-            <button class="btn" id="config-btn">CONFIG</button>
+<!-- ── Titlebar ── -->
+<div class="titlebar" data-tauri-drag-region>
+    <div class="titlebar-left">
+        <div class="lang-toggle">
+            <button id="lang-tr">TR</button>
+            <button id="lang-en" class="active">EN</button>
         </div>
-        <div class="titlebar-center">
-            <div class="title">REDAKT</div>
-            <div class="subtitle" id="subtitle">LOCAL DE-IDENTIFICATION</div>
-        </div>
-        <div class="titlebar-right">
-            <span id="file-label">NO FILE LOADED</span>
-        </div>
+        <button class="titlebar-btn" id="btn-config" title="Settings">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/></svg>
+        </button>
     </div>
-
-    <!-- Toolbar -->
-    <div id="toolbar">
-        <button class="btn" id="open-btn">OPEN</button>
-        <button class="btn-primary" id="scan-btn" disabled>SCAN</button>
-        <select id="format-select">
-            <option value="txt">TXT</option>
-            <option value="md">Markdown</option>
-        </select>
-        <button class="btn" id="export-btn" disabled>EXPORT</button>
-        <button class="btn" id="clear-btn" disabled>CLEAR</button>
-
-        <label id="age-mode" class="hidden">
-            <input type="checkbox" id="age-checkbox"> AGE
-        </label>
-        <div id="birth-date-display" class="hidden">
-            <span id="birth-label">Birth:</span>
-            <span id="birth-value"></span>
-            <button class="btn-tiny" id="change-birth-btn">Change</button>
-        </div>
-
-        <div id="chip-container"></div>
-        <button class="btn-tiny hidden" id="select-all-btn">ALL</button>
-        <button class="btn-tiny hidden" id="select-none-btn">NONE</button>
+    <div class="titlebar-center">
+        <span class="title-text">REDAKT</span>
+        <span class="title-subtitle" data-i18n="subtitle">LOCAL DE-IDENTIFICATION</span>
     </div>
-
-    <!-- Progress bar -->
-    <div id="progress-bar" class="hidden">
-        <div id="progress-fill"></div>
+    <div class="titlebar-right">
+        <button class="titlebar-btn theme-toggle" id="btn-theme" title="Toggle theme">
+            <svg class="icon-dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon-light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <span class="file-label" id="file-label" data-i18n="no_file">NO FILE LOADED</span>
     </div>
+</div>
 
-    <!-- Main content -->
-    <div id="main-content">
+<!-- ── Toolbar ── -->
+<div class="toolbar">
+    <button class="tool-btn" id="btn-open" data-i18n="open">OPEN</button>
+    <button class="tool-btn scan-btn" id="btn-scan" data-i18n="scan">SCAN</button>
+    <select class="tool-select" id="export-format">
+        <option value="txt">TXT</option>
+        <option value="md">Markdown</option>
+        <option value="pdf">PDF</option>
+        <option value="docx">DOCX</option>
+    </select>
+    <button class="tool-btn export-btn" id="btn-export" data-i18n="export">EXPORT</button>
+    <button class="tool-btn" id="btn-clear" data-i18n="clear">CLEAR</button>
+    <div class="toolbar-spacer"></div>
+    <label class="age-toggle" id="age-toggle" style="display:none">
+        <input type="checkbox" id="chk-age">
+        <span data-i18n="age_mode">AGE</span>
+    </label>
+    <div class="chips" id="chips"></div>
+    <button class="tool-btn small" id="btn-select-all" style="display:none" data-i18n="select_all">ALL</button>
+    <button class="tool-btn small" id="btn-select-none" style="display:none" data-i18n="select_none">NONE</button>
+</div>
 
-        <!-- Top: Document Text | Redacted Preview -->
-        <div id="text-panes">
-            <div class="pane" id="left-pane">
-                <div class="pane-label" id="left-label">DOCUMENT TEXT</div>
-                <div class="pane-content" id="original-view">
-                    <div class="empty-state">
-                        <div class="icon">&#x1F4C4;</div>
-                        <span>DROP FILE HERE OR CLICK OPEN</span>
+<!-- ── Progress bar ── -->
+<div class="progress-bar" id="progress-bar"></div>
+
+<!-- ── Main content ── -->
+<div class="main-content">
+    <!-- Split panes -->
+    <div class="panes single-pane" id="panes">
+        <div class="pane">
+            <div class="pane-label" id="left-label" data-i18n="doc_text">DOCUMENT TEXT</div>
+            <div class="pane-content" id="document-text">
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14,2 14,8 20,8"/>
+                        </svg>
                     </div>
-                </div>
-            </div>
-            <div id="h-divider"></div>
-            <div class="pane" id="right-pane">
-                <div class="pane-label" id="right-label">REDACTED PREVIEW</div>
-                <div class="pane-content" id="redacted-view">
-                    <div class="empty-state">
-                        <span>SCAN FOR PII TO PREVIEW REDACTION</span>
-                    </div>
+                    <p class="empty-text" data-i18n="drop_hint">Drop a file here or click OPEN</p>
+                    <p class="empty-formats">PDF, DOCX, TXT, PNG, JPG</p>
                 </div>
             </div>
         </div>
-
-        <!-- Vertical divider -->
-        <div id="v-divider"></div>
-
-        <!-- Entity table -->
-        <div id="entity-panel">
-            <div class="pane-label" id="table-label">DETECTED PII</div>
-            <div class="entity-table-wrap">
-                <table id="entity-table">
-                    <thead>
-                        <tr>
-                            <th class="col-check"></th>
-                            <th class="col-num">#</th>
-                            <th>ORIGINAL</th>
-                            <th class="col-type">TYPE</th>
-                            <th>REPLACEMENT</th>
-                            <th class="col-conf">CONF</th>
-                        </tr>
-                    </thead>
-                    <tbody id="entity-tbody"></tbody>
-                </table>
+        <div class="pane">
+            <div class="pane-label" id="right-label" data-i18n="redacted_preview">REDACTED PREVIEW</div>
+            <div class="pane-content" id="redacted-preview">
+                <span class="placeholder-text" data-i18n="scan_hint">Click "Scan" to preview redacted output.</span>
             </div>
         </div>
-
     </div>
 
-    <!-- Status bar -->
-    <div id="status-bar">
-        <div id="status-dot"></div>
-        <span id="status-text">READY</span>
-        <span class="spacer"></span>
-        <span id="local-badge">100% LOCAL</span>
-    </div>
-
-</div>
-
-<!-- Setup wizard overlay -->
-<div id="setup-overlay" class="overlay hidden">
-    <div class="modal">
-        <h2>REDAKT SETUP</h2>
-        <div id="setup-content">
-            <p>Checking for model files...</p>
+    <!-- Entity table (hidden until scan) -->
+    <div class="entity-panel" id="entity-panel" style="display:none">
+        <div class="pane-label" data-i18n="detected_pii">DETECTED PII</div>
+        <div class="entity-table-wrap">
+            <table class="entity-table" id="entity-table">
+                <thead>
+                    <tr>
+                        <th width="30"></th>
+                        <th width="30">#</th>
+                        <th data-i18n="col_original">Original</th>
+                        <th width="90" data-i18n="col_type">Type</th>
+                        <th width="90" data-i18n="col_replacement">Replacement</th>
+                        <th width="70" data-i18n="col_confidence">Conf.</th>
+                    </tr>
+                </thead>
+                <tbody id="entity-tbody"></tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- Settings overlay -->
-<div id="settings-overlay" class="overlay hidden">
-    <div class="modal">
-        <h2>CONFIG</h2>
-        <div id="settings-content"></div>
-        <button class="btn" id="settings-close-btn">CLOSE</button>
+<!-- ── Status bar ── -->
+<div class="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span class="status-text" id="status-text">READY</span>
+    <span class="local-badge" data-i18n="local_badge">100% LOCAL · NO INTERNET</span>
+</div>
+
+<!-- ── Settings dialog (hidden) ── -->
+<div class="dialog-overlay" id="settings-overlay" style="display:none">
+    <div class="dialog">
+        <div class="dialog-header">
+            <span data-i18n="settings">SETTINGS</span>
+            <button class="dialog-close" id="settings-close">&times;</button>
+        </div>
+        <div class="dialog-body">
+            <div class="setting-group">
+                <label class="setting-label" data-i18n="model_label">Model</label>
+                <div class="model-info" id="model-info">
+                    <div class="model-name" id="model-name">--</div>
+                    <div class="model-details" id="model-details"></div>
+                </div>
+                <div class="model-dl-progress" id="model-dl-progress" style="display:none">
+                    <div class="model-dl-bar-wrap">
+                        <div class="model-dl-bar-fill" id="model-dl-bar"></div>
+                    </div>
+                    <div class="model-dl-stats">
+                        <span id="model-dl-pct">0%</span>
+                        <span id="model-dl-speed">--</span>
+                        <span id="model-dl-eta">--</span>
+                    </div>
+                </div>
+                <select class="setting-select" id="setting-model" style="display:none">
+                    <option value="">No models found</option>
+                </select>
+            </div>
+            <div class="setting-divider"></div>
+            <div class="about-section">
+                <div class="about-name">REDAKT <span class="about-version">v0.1.0</span></div>
+                <p class="about-desc" data-i18n="about_desc">Local medical document de-identification. Detects and redacts personal identifiable information from clinical documents using a local LLM. No data ever leaves your machine.</p>
+                <div class="about-meta">
+                    <span data-i18n="about_developer">Developer: Dr. Hasan Bora Ulukapı</span>
+                    <span data-i18n="about_engine">Engine: Qwen 3.5 via llama.cpp</span>
+                    <span data-i18n="about_license">MIT License</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<script type="module" src="js/app.js"></script>
+<!-- ── Toast notification ── -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
 </body>
 </html>

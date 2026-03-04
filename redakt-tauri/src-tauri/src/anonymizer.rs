@@ -28,7 +28,7 @@ PII categories to detect:
   - date: Any other date that doesn't fit above
 - id: National ID number, protocol number, patient number, insurance number
 - address: Street, district, city, postal code
-- phone: Phone numbers (landline and mobile)
+- phone: Phone numbers (landline and mobile). IMPORTANT: Date-time strings (e.g. "23.01.2023 11:55", "12.06.2023 18") are NOT phone numbers — classify them as "date".
 - email: Email addresses
 - institution: Hospital name, clinic name, school name, pharmacy name
 - age: Patient age (e.g., "3 years old", "14 months old"). NOTE: Time intervals like "3 months later", "in 2 weeks", "after 1 year" are NOT PII.
@@ -56,7 +56,7 @@ Tespit etmen gereken kişisel veri kategorileri:
   - date: Yukarıdakilere uymayan diğer tarihler
 - id: TC Kimlik No, protokol numarası, hasta numarası, sigorta numarası
 - address: Sokak, mahalle, ilçe, il, posta kodu
-- phone: Telefon numaraları (sabit ve mobil)
+- phone: Telefon numaraları (sabit ve mobil). DİKKAT: Tarih ve saat bilgileri (örn: "23.01.2023 11:55", "12.06.2023 18") telefon numarası DEĞİLDİR — bunları "date" olarak sınıflandır.
 - email: E-posta adresleri
 - institution: Hastane adı, klinik adı, okul adı, eczane adı
 - age: Hasta yaşı (örn: "3 yaşında", "14 aylık", "5 günlük"). DİKKAT: "3 ay sonra", "2 hafta sonra", "1 yıl içinde" gibi zaman aralıkları kişisel veri DEĞİLDİR.
@@ -102,7 +102,10 @@ pub async fn detect_pii(
     // Step 2: Parse LLM response (with error recovery)
     let mut entities = parse_llm_response(&raw_response)?;
 
-    // Step 3: Post-LLM regex supplement
+    // Step 3: Reclassify misidentified entities (dates tagged as phone, etc.)
+    reclassify_misidentified(&mut entities);
+
+    // Step 4: Post-LLM regex supplement
     let regex_entities = regex_supplement(text, language);
     for re in regex_entities {
         // Only add if not already found by LLM
@@ -111,7 +114,7 @@ pub async fn detect_pii(
         }
     }
 
-    // Step 4: Assign placeholders
+    // Step 5: Assign placeholders
     assign_placeholders(&mut entities);
 
     Ok(entities)
@@ -216,6 +219,20 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
     // Include a snippet of the raw response for debugging
     let raw_preview: String = raw.chars().take(300).collect();
     Err(format!("Failed to parse LLM response as JSON. Raw response: {}", raw_preview))
+}
+
+/// Reclassify entities the LLM mis-categorized.
+/// Common case: dates with hours (e.g. "23.01.2023 11") tagged as "phone".
+fn reclassify_misidentified(entities: &mut Vec<PIIEntity>) {
+    let date_re = Regex::new(
+        r"(?:\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2}|\d{4}/\d{1,2}/\d{1,2})"
+    ).unwrap();
+    for entity in entities.iter_mut() {
+        if entity.category == "phone" && date_re.is_match(&entity.original) {
+            entity.category = "date".to_string();
+            entity.subcategory = Some("date".to_string());
+        }
+    }
 }
 
 /// Regex-based PII supplement (catches what LLM misses)

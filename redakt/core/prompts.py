@@ -12,7 +12,7 @@ Tespit etmen gereken kişisel veri kategorileri:
   - date: Yukarıdakilere uymayan diğer tarihler
 - id: TC Kimlik No, protokol numarası, hasta numarası, sigorta numarası
 - address: Sokak, mahalle, ilçe, il, posta kodu
-- phone: Telefon numaraları (sabit ve mobil)
+- phone: Telefon numaraları (sabit ve mobil). DİKKAT: Tarih ve saat bilgileri (örn: "23.01.2023 11:55", "12.06.2023 18") telefon numarası DEĞİLDİR — bunları "date" olarak sınıflandır.
 - email: E-posta adresleri
 - institution: Hastane adı, klinik adı, okul adı, eczane adı
 - age: Hasta yaşı (örn: "3 yaşında", "14 aylık", "5 günlük"). DİKKAT: "3 ay sonra", "2 hafta sonra", "1 yıl içinde" gibi zaman aralıkları kişisel veri DEĞİLDİR.
@@ -41,7 +41,7 @@ PII categories to detect:
   - date: Any other date that doesn't fit above
 - id: National ID number, protocol number, patient number, insurance number
 - address: Street, district, city, postal code
-- phone: Phone numbers (landline and mobile)
+- phone: Phone numbers (landline and mobile). IMPORTANT: Date-time strings (e.g. "23.01.2023 11:55", "12.06.2023 18") are NOT phone numbers — classify them as "date".
 - email: Email addresses
 - institution: Hospital name, clinic name, school name, pharmacy name
 - age: Patient age (e.g., "3 years old", "14 months old", "5 days old"). NOTE: Time intervals like "3 months later", "in 2 weeks", "after 1 year" are NOT PII.
