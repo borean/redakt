@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redakt — The Research Bottleneck</title>
+    <meta name="description" content="A manifesto on automating the wrong kind of hard work in medical research. Local AI, privacy-first de-identification.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'><rect x='15' y='5' width='70' height='110' fill='%231c1917'/></svg>">
+    <style>
+        :root {
+            --bg: #fafaf9;
+            --text: #1c1917;
+            --text-secondary: #57534e;
+            --text-dim: #a8a29e;
+            --accent: #b45309;
+            --accent-hover: #92400e;
+            --accent-light: #fef3c7;
+            --border: #e7e5e4;
+            --code-bg: #f5f5f4;
+            --dark: #1c1917;
+            --dark-secondary: #292524;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Nav ── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(250, 250, 249, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+
+        nav.scrolled { border-bottom-color: var(--border); }
+
+        .nav-brand {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+
+        .nav-links a {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover { color: var(--text); }
+        .nav-links a.active { color: var(--accent); }
+
+        .nav-links .btn-nav {
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.4rem 1rem;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-links .btn-nav:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* ── Language toggle ── */
+        .lang-toggle {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .lang-toggle button {
+            font-family: inherit;
+            font-size: inherit;
+            letter-spacing: inherit;
+            border: none;
+            background: transparent;
+            padding: 0.35rem 0.6rem;
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: all 0.2s ease;
+        }
+
+        .lang-toggle button.active {
+            background: var(--dark);
+            color: white;
+        }
+
+        .lang-toggle button:not(.active):hover {
+            color: var(--text);
+        }
+
+        /* ── Small Hero ── */
+        .hero-small {
+            padding: 8rem 2rem 3rem;
+            text-align: center;
+        }
+
+        .hero-small h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+        }
+
+        .hero-small .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 540px;
+            margin: 0 auto;
+            line-height: 1.7;
+            font-style: italic;
+        }
+
+        /* ── Article ── */
+        article {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 3rem 2rem 6rem;
+        }
+
+        .section { margin-bottom: 4rem; }
+
+        .section h2 {
+            font-size: 1.6rem;
+            font-weight: 400;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .section p {
+            margin-bottom: 1.2rem;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+
+        .section p.secondary { color: var(--text-secondary); }
+
+        .highlight {
+            background: var(--accent-light);
+            padding: 1.5rem 2rem;
+            border-left: 3px solid var(--accent);
+            margin: 2rem 0;
+            font-style: italic;
+        }
+
+        .highlight p { margin-bottom: 0; }
+
+        .keystroke-math {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            background: var(--code-bg);
+            padding: 1.5rem 2rem;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+            line-height: 2;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .pipeline { list-style: none; margin: 2rem 0; padding: 0; }
+
+        .pipeline li {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+        }
+
+        .pipeline li:last-child { border-bottom: none; }
+
+        .pipeline .step-number {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            flex-shrink: 0;
+            width: 2rem;
+        }
+
+        .pipeline .step-content { flex: 1; }
+
+        .pipeline .step-title {
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .pipeline .step-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .separator {
+            text-align: center;
+            margin: 4rem 0;
+            color: var(--border);
+            letter-spacing: 0.5em;
+        }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        footer a:hover { color: var(--text); }
+
+        /* ── Responsive ── */
+        @media (max-width: 700px) {
+            article { padding: 2rem 1.25rem 4rem; }
+
+            .highlight { padding: 1rem 1.25rem; }
+
+            .keystroke-math {
+                padding: 1rem 1.25rem;
+                font-size: 0.8rem;
+            }
+
+            .hero-small { padding: 7rem 1.25rem 2rem; }
+
+            .nav-links a.hide-mobile { display: none; }
+        }
+
+        /* Fix Turkish uppercase on monospace labels */
+        html[lang="tr"] .nav-links a {
+            text-transform: none;
+        }
+    </style>
+</head>
+<body>
+
+<nav id="topnav">
+    <a href="/" class="nav-brand"><svg width="12" height="16" viewBox="0 0 75 100" style="vertical-align: -2px; margin-right: 6px;"><rect x="4" y="4" width="67" height="92" rx="6" fill="currentColor"/></svg>REDAKT</a>
+    <div class="nav-links">
+        <a href="/manifesto" class="hide-mobile active" data-i18n="nav_manifesto">Manifesto</a>
+        <a href="/guide" class="hide-mobile" data-i18n="nav_guide">Guide</a>
+        <a href="/#download" class="hide-mobile" data-i18n="nav_download">Download</a>
+        <div class="lang-toggle">
+            <button id="lang-tr">TR</button>
+            <button id="lang-en">EN</button>
+        </div>
+        <a href="https://github.com/borean/redakt" target="_blank" class="btn-nav" style="text-transform:none">GITHUB</a>
+    </div>
+</nav>
+
+<!-- ── Small Hero ── -->
+<section class="hero-small">
+    <h1 data-i18n="art_title">The Research Bottleneck</h1>
+    <p class="subtitle" data-i18n="art_subtitle">A manifesto on automating the wrong kind of hard work in medical research</p>
+</section>
+
+<!-- ── Article ── -->
+<article id="manifesto">
+
+    <div class="section">
+        <p data-i18n="sec1_p1">The real bottleneck in medical research is not ideas. Not patient numbers. Not diagnoses. Not work hours.</p>
+        <p data-i18n="sec1_p2">It is the mechanical labor. The data entry. The copy-pasting. The hundred thousand keystrokes between you and your results.</p>
+    </div>
+
+    <div class="section">
+        <h2 data-i18n="sec2_title">The arithmetic of dread</h2>
+        <p data-i18n="sec2_p1">You know the feeling. You open that Excel file. Fifty-plus columns. Eight hundred patients. Every row empty, waiting for you.</p>
+
+        <div class="keystroke-math" data-i18n-html="sec2_math">
+            800 patients &times; 50 columns &times; 2&ndash;3 keystrokes each = ~100,000 keystrokes<br>
+            &hellip;and that is before you even open the EHR.
+        </div>
+
+        <p data-i18n="sec2_p2">How many clicks to open a patient file? To find the lab results? To verify units match your dataset schema? How many days until the conference deadline? Should you delegate half to a colleague and spend hours reconciling inconsistencies later?</p>
+
+        <p class="secondary" data-i18n="sec2_p3">This system evolved from the era of handwritten patient notes. It was designed for paper charts and filing cabinets. We carried it into the digital age unchanged. That has to stop.</p>
+    </div>
+
+    <div class="section">
+        <h2 data-i18n="sec3_title">The privacy gate</h2>
+        <p data-i18n="sec3_p1">Medical records are personal. They are protected under HIPAA, KVKK, GDPR &mdash; whatever your jurisdiction calls its patient data protection law. This is not optional and not negotiable.</p>
+        <p data-i18n="sec3_p2">But this is not an obstacle to automation. It is a design constraint.</p>
+        <p data-i18n="sec3_p3">Anonymization can be automated. Not by sending data to big AI companies&rsquo; cloud models. By small, fast models running locally on your own machine &mdash; or your hospital&rsquo;s machine. These are cheap, proven solutions. They are simply not yet widely implemented.</p>
+        <p data-i18n="sec3_p4">No automated system catches everything on its own &mdash; that is why the human review step is built in. You verify the output before it moves forward. That is part of the design, not a limitation.</p>
+        <p data-i18n="sec3_p5">Once data is properly de-identified, the entire downstream pipeline opens up.</p>
+    </div>
+
+    <div class="section">
+        <h2 data-i18n="sec4_title">The key insight</h2>
+
+        <div class="highlight">
+            <p data-i18n="sec4_highlight">You are not asking the LLM to do medicine. You are asking it to do what it is good at &mdash; write code, move data, search text &mdash; in service of your clinical judgment.</p>
+        </div>
+
+        <p data-i18n="sec4_p1">LLMs are not deterministic. Nobody claims they are. But the code they write is. A Python script that runs a Cox regression gives the same result every time. The LLM is the architect. The machine is the calculator. You are the scientist.</p>
+        <p data-i18n="sec4_p2">Manually entering data into each cell of a massive dataset is neither efficient nor safe. Humans are prone to errors. Tested, deterministic systems are not. And LLM agents can build those systems &mdash; personalized to your specific research needs.</p>
+
+        <div class="highlight">
+            <p data-i18n-html="sec4_principles"><strong>Core principles:</strong><br>
+            Human clinicians think &mdash; machines do repetitive work.<br>
+            Privacy first: local model, no cloud, no exceptions.<br>
+            Every automated step must be inspectable and reversible.<br>
+            Tools should serve your workflow, not engineers&rsquo; assumptions.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 data-i18n="sec5_title">The pipeline</h2>
+        <p data-i18n="sec5_intro">The entire research workflow, from raw records to manuscript, can be restructured:</p>
+
+        <ol class="pipeline">
+            <li>
+                <span class="step-number">01</span>
+                <div class="step-content">
+                    <span class="step-title" data-i18n="step1_title">Extract raw text</span>
+                    <span class="step-desc" data-i18n="step1_desc">Pull patient files from the EHR &mdash; discharge summaries, lab reports, imaging reports. OCR and text parsing only. No LLM. No cloud. Just the raw documents.</span>
+                </div>
+            </li>
+            <li>
+                <span class="step-number">02</span>
+                <div class="step-content">
+                    <span class="step-title" data-i18n="step2_title">Anonymize</span>
+                    <span class="step-desc" data-i18n="step2_desc">Local de-identification on the raw text. Small model, runs on your machine. No data leaves the hospital. HIPAA/KVKK/GDPR-compliant by design. This is the gate.</span>
+                </div>
+            </li>
+            <li>
+                <span class="step-number">03</span>
+                <div class="step-content">
+                    <span class="step-title" data-i18n="step3_title">Structure</span>
+                    <span class="step-desc" data-i18n="step3_desc">Now that data is safe, parse it into structured fields &mdash; NLP, extraction templates, deterministic mappings. The smart processing happens after anonymization, not before.</span>
+                </div>
+            </li>
+            <li>
+                <span class="step-number">04</span>
+                <div class="step-content">
+                    <span class="step-title" data-i18n="step4_title">Validate</span>
+                    <span class="step-desc" data-i18n="step4_desc">Unit conversion, range checks, deduplication. Rule-based. No LLM needed.</span>
+                </div>
+            </li>
+            <li>
+                <span class="step-number">05</span>
+                <div class="step-content">
+                    <span class="step-title" data-i18n="step5_title">Analyze</span>
+                    <span class="step-desc" data-i18n="step5_desc">Agent-written statistical scripts &mdash; scipy, lifelines, statsmodels &mdash; that run identically every time. You review the code before it runs.</span>
+                </div>
+            </li>
+            <li>
+                <span class="step-number">06</span>
+                <div class="step-content">
+                    <span class="step-title" data-i18n="step6_title">Interpret</span>
+                    <span class="step-desc" data-i18n="step6_desc">Debate results with an agent that has biostatistics knowledge. Iterate. Get new angles. Identify what additional data would strengthen the study.</span>
+                </div>
+            </li>
+            <li>
+                <span class="step-number">07</span>
+                <div class="step-content">
+                    <span class="step-title" data-i18n="step7_title">Review literature</span>
+                    <span class="step-desc" data-i18n="step7_desc">Systematic search with citation verification. Do not accept any author at their word. Find gaps. Challenge historical assumptions. Re-analyze if needed.</span>
+                </div>
+            </li>
+            <li>
+                <span class="step-number">08</span>
+                <div class="step-content">
+                    <span class="step-title" data-i18n="step8_title">Write</span>
+                    <span class="step-desc" data-i18n="step8_desc">Agent-assisted manuscript drafting from your results and your outline. You own the science.</span>
+                </div>
+            </li>
+        </ol>
+
+        <p data-i18n="sec5_closing">Every step has a human checkpoint. The agent handles the hundred thousand keystrokes. You handle the thinking.</p>
+    </div>
+
+    <div class="separator">&middot; &middot; &middot;</div>
+
+    <div class="section">
+        <h2 data-i18n="sec6_title">Why this matters now</h2>
+        <p data-i18n="sec6_p1">The technology for every step of this pipeline exists today. Local language models, structured extraction, automated statistics, literature search APIs, citation verification. None of this is speculative.</p>
+        <p data-i18n="sec6_p2">What has been missing is implementation from the right direction. Most tools in this space are built by engineers guessing what doctors need. They optimize for the wrong things. They miss the workflow. They do not understand which steps actually consume your days.</p>
+        <p data-i18n="sec6_p3">When a clinician builds the tool, the priorities are different. The interface matches how you actually think about your data. The constraints reflect real regulatory requirements, not hypothetical ones. The output is what you actually need for the conference submission, not a demo for investors.</p>
+    </div>
+
+    <div class="section">
+        <h2 data-i18n="sec7_title">The second-order effects</h2>
+        <p data-i18n="sec7_p1">When you remove the mechanical load, something else happens.</p>
+        <p data-i18n="sec7_p2">You stop cutting corners. You do not skip the extra analysis because it means another week of data entry. You do not settle for a smaller cohort because the extraction is too tedious.</p>
+        <p data-i18n="sec7_p3">Your mind is clearer. You spot gaps in the literature that nobody had the bandwidth to look for. You find outdated claims in foundational papers. You re-analyze. You fix collective mistakes faster.</p>
+        <p data-i18n="sec7_p4">You do more research. Better research.</p>
+    </div>
+
+    <div class="separator">&middot; &middot; &middot;</div>
+
+    <div class="section">
+        <p data-i18n="sec8_p1">The time is now. Not in five years. Not when the models get better. Now.</p>
+
+        <div class="highlight">
+            <p data-i18n="sec8_highlight">We build tools that preserve privacy, eliminate drudgery, and put clinician judgment front and center. Human thinking belongs to humans. Mechanical work belongs to machines.</p>
+        </div>
+    </div>
+
+</article>
+
+<footer>
+    <p data-i18n-html="footer_text">&copy; 2026 &middot; Built by a clinician, for clinicians. &middot;
+    <a href="https://github.com/borean/redakt" target="_blank">GitHub</a></p>
+</footer>
+
+<script>
+    // ── Translations ──
+    const translations = {
+        tr: {
+            // Nav
+            nav_manifesto: 'MANIFESTO',
+            nav_guide: 'REHBER',
+            nav_download: '\u0130ND\u0130R',
+
+            // Article header
+            art_title: 'Ara\u015ft\u0131rma Darbo\u011faz\u0131',
+            art_subtitle: 'T\u0131bbi ara\u015ft\u0131rmadaki yanl\u0131\u015f t\u00fcr zor i\u015fi otomatikle\u015ftirme \u00fczerine bir manifesto',
+
+            // Section 1
+            sec1_p1: 'T\u0131bbi ara\u015ft\u0131rmadaki ger\u00e7ek darbo\u011faz fikirler de\u011fil. Hasta say\u0131lar\u0131 de\u011fil. Tan\u0131lar de\u011fil. \u00c7al\u0131\u015fma saatleri de\u011fil.',
+            sec1_p2: 'Mekanik emek. Veri giri\u015fi. Kopyala-yap\u0131\u015ft\u0131r. Sizinle sonu\u00e7lar\u0131n\u0131z aras\u0131ndaki y\u00fcz bin tu\u015f vuru\u015fu.',
+
+            // Section 2 - Arithmetic
+            sec2_title: 'Korkutan aritmetik',
+            sec2_p1: 'O hissi bilirsiniz. Excel dosyas\u0131n\u0131 a\u00e7ars\u0131n\u0131z. 50+ s\u00fctun. 800 hasta. Her sat\u0131r bo\u015f, sizi bekliyor.',
+            sec2_math: '800 hasta \u00d7 50 s\u00fctun \u00d7 2\u20133 tu\u015f vuru\u015fu = ~100.000 tu\u015f vuru\u015fu<br>\u2026ve daha HBYS\u2019yi bile a\u00e7mad\u0131n\u0131z.',
+            sec2_p2: 'Bir hasta dosyas\u0131n\u0131 a\u00e7mak ka\u00e7 t\u0131klama? Laboratuvar sonu\u00e7lar\u0131n\u0131 bulmak? Birimlerin veri setinizle e\u015fle\u015fti\u011fini do\u011frulamak? Kongre tarihine ka\u00e7 g\u00fcn kald\u0131? Yar\u0131s\u0131n\u0131 bir meslekta\u015f\u0131n\u0131za devredip sonra saatlerce tutars\u0131zl\u0131klar\u0131 m\u0131 d\u00fczeltmelisiniz?',
+            sec2_p3: 'Bu sistem el yaz\u0131s\u0131 hasta notlar\u0131 d\u00f6neminden evrildi. Ka\u011f\u0131t dosyalar ve ar\u015fiv dolaplar\u0131 i\u00e7in tasarland\u0131. Dijital \u00e7a\u011fa de\u011fi\u015ftirmeden ta\u015f\u0131d\u0131k. Bunun durmas\u0131 gerekiyor.',
+
+            // Section 3 - Privacy
+            sec3_title: 'Gizlilik kap\u0131s\u0131',
+            sec3_p1: 'T\u0131bbi kay\u0131tlar ki\u015fiseldir. KVKK, HIPAA, GDPR \u2014 yetki alan\u0131n\u0131z hasta veri koruma yasas\u0131na ne derse desin \u2014 korumas\u0131 alt\u0131ndad\u0131r. Bu iste\u011fe ba\u011fl\u0131 de\u011fildir ve pazarl\u0131\u011f\u0131 yap\u0131lamaz.',
+            sec3_p2: 'Ama bu, otomasyonun \u00f6n\u00fcnde bir engel de\u011fil. Bir tasar\u0131m k\u0131s\u0131tlamas\u0131.',
+            sec3_p3: 'Anonimle\u015ftirme otomatikle\u015ftirilebilir. Verileri b\u00fcy\u00fck yapay zeka \u015firketlerinin bulut modellerine g\u00f6ndererek de\u011fil. Kendi bilgisayar\u0131n\u0131zda \u2014 ya da hastanenizin bilgisayar\u0131nda \u2014 \u00e7al\u0131\u015fan k\u00fc\u00e7\u00fck, h\u0131zl\u0131 modellerle. Bunlar ucuz, kan\u0131tlanm\u0131\u015f \u00e7\u00f6z\u00fcmler. Sadece hen\u00fcz yayg\u0131n olarak uygulanmad\u0131lar.',
+            sec3_p4: 'Hi\u00e7bir otomatik sistem tek ba\u015f\u0131na her \u015feyi yakalayamaz \u2014 bu y\u00fczden insan denetim ad\u0131m\u0131 tasar\u0131ma dahil. \u00c7\u0131kt\u0131y\u0131 ilerlemeden \u00f6nce siz do\u011frulars\u0131n\u0131z. Bu tasar\u0131m\u0131n bir par\u00e7as\u0131, bir s\u0131n\u0131rlama de\u011fil.',
+            sec3_p5: 'Veriler d\u00fczg\u00fcn bir \u015fekilde anonimle\u015ftirildikten sonra, t\u00fcm s\u00fcrec\u00e7 a\u00e7\u0131l\u0131r.',
+
+            // Section 4 - Key insight
+            sec4_title: 'Temel i\u00e7g\u00f6r\u00fc',
+            sec4_highlight: "LLM'e t\u0131bbi karar verdirmiyorsunuz. Onu iyi oldu\u011fu i\u015fe ko\u015fuyorsunuz \u2014 kod yazmak, veri ta\u015f\u0131mak, metin aramak \u2014 klinik muhakemenize hizmet etmesi i\u00e7in.",
+            sec4_p1: "LLM'ler deterministik de\u011fildir. Kimse \u00f6yle olduklar\u0131n\u0131 iddia etmiyor. Ama yazd\u0131klar\u0131 kod deterministiktir. Cox regresyonu \u00e7al\u0131\u015ft\u0131ran bir Python script\u2019i her seferinde ayn\u0131 sonucu verir. LLM mimard\u0131r. Makine hesap makinesidir. Bilim insan\u0131 sizsiniz.",
+            sec4_p2: 'Devasa bir veri setinin her h\u00fccresine elle veri girmek ne verimli ne de g\u00fcvenlidir. \u0130nsanlar hata yapmaya e\u011filmlidir. Test edilmi\u015f, deterministik sistemler de\u011fildir. Ve LLM ajanlar\u0131 bu sistemleri \u2014 sizin \u00f6zel ara\u015ft\u0131rma ihtiya\u00e7lar\u0131n\u0131za \u00f6zelle\u015ftirilmi\u015f olarak \u2014 kurabilir.',
+            sec4_principles: '<strong>Temel ilkeler:</strong><br>Klinisyenler d\u00fc\u015f\u00fcn\u00fcr \u2014 makineler tekrarlayan i\u015fleri yapar.<br>\u00d6nce gizlilik: yerel model, bulut yok, istisna yok.<br>Her otomatik ad\u0131m denetlenebilir ve geri al\u0131nabilir olmal\u0131.<br>Ara\u00e7lar sizin i\u015f ak\u0131\u015f\u0131n\u0131za hizmet etmeli, m\u00fchendislerin varsay\u0131mlar\u0131na de\u011fil.',
+
+            // Section 5 - Pipeline
+            sec5_title: 'S\u00fcrec\u00e7',
+            sec5_intro: 'Ham kay\u0131tlardan makaleye kadar t\u00fcm ara\u015ft\u0131rma i\u015f ak\u0131\u015f\u0131 yeniden yap\u0131land\u0131r\u0131labilir:',
+            step1_title: 'Ham metni \u00e7\u0131kar',
+            step1_desc: "HBYS'den hasta dosyalar\u0131n\u0131 \u00e7ekin \u2014 epikrizler, laboratuvar raporlar\u0131, g\u00f6r\u00fcnt\u00fcleme raporlar\u0131. Sadece OCR ve metin ayr\u0131\u015ft\u0131rma. LLM yok. Bulut yok. Sadece ham belgeler.",
+            step2_title: 'Anonimle\u015ftir',
+            step2_desc: 'Ham metin \u00fczerinde yerel kimlik gizleme. K\u00fc\u00e7\u00fck model, bilgisayar\u0131n\u0131zda \u00e7al\u0131\u015f\u0131r. Hi\u00e7bir veri hastaneden \u00e7\u0131kmaz. Tasar\u0131mdan KVKK/HIPAA/GDPR uyumlu. Bu kap\u0131d\u0131r.',
+            step3_title: 'Yap\u0131land\u0131r',
+            step3_desc: 'Art\u0131k veri g\u00fcvende, yap\u0131land\u0131r\u0131lm\u0131\u015f alanlara ayr\u0131\u015ft\u0131r\u0131n \u2014 NLP, \u00e7\u0131kar\u0131m \u015fablonlar\u0131, deterministik e\u015flemeler. Ak\u0131ll\u0131 i\u015fleme anonimle\u015ftirmeden sonra olur, \u00f6nce de\u011fil.',
+            step4_title: 'Do\u011frula',
+            step4_desc: 'Birim d\u00f6n\u00fc\u015f\u00fcm\u00fc, aral\u0131k kontrolleri, tekille\u015ftirme. Kural tabanl\u0131. LLM gerekmez.',
+            step5_title: 'Analiz et',
+            step5_desc: 'Ajan taraf\u0131ndan yaz\u0131lan istatistiksel script\u2019ler \u2014 scipy, lifelines, statsmodels \u2014 her seferinde ayn\u0131 \u015fekilde \u00e7al\u0131\u015f\u0131r. Kodu \u00e7al\u0131\u015fmadan \u00f6nce siz incelersiniz.',
+            step6_title: 'Yorumla',
+            step6_desc: 'Biyoistatistik bilgisi olan bir ajanla sonu\u00e7lar\u0131 tart\u0131\u015f\u0131n. Yineleyin. Yeni a\u00e7\u0131lar edinin. \u00c7al\u0131\u015fmay\u0131 g\u00fc\u00e7lendirecek ek verileri belirleyin.',
+            step7_title: 'Literat\u00fcr taramas\u0131',
+            step7_desc: 'At\u0131f do\u011frulamal\u0131 sistematik tarama. Hi\u00e7bir yazar\u0131n s\u00f6z\u00fcne g\u00fcvenmeyin. Bo\u015fluklar\u0131 bulun. Tarihsel varsay\u0131mlar\u0131 sorgulay\u0131n. Gerekirse yeniden analiz edin.',
+            step8_title: 'Yaz',
+            step8_desc: 'Sonu\u00e7lar\u0131n\u0131zdan ve tasla\u011f\u0131n\u0131zdan ajan destekli makale yaz\u0131m\u0131. Bilim sizindir.',
+            sec5_closing: 'Her ad\u0131mda bir insan kontrol noktas\u0131 var. Ajan y\u00fcz bin tu\u015f vuru\u015funu halleder. D\u00fc\u015f\u00fcnmeyi siz halledersiniz.',
+
+            // Section 6 - Why now
+            sec6_title: 'Neden \u015fimdi \u00f6nemli',
+            sec6_p1: "Bu s\u00fcrec\u00e7in her ad\u0131m\u0131n\u0131n teknolojisi bug\u00fcn mevcut. Yerel dil modelleri, yap\u0131land\u0131r\u0131lm\u0131\u015f \u00e7\u0131kar\u0131m, otomatik istatistik, literat\u00fcr tarama API'leri, at\u0131f do\u011frulama. Bunlar\u0131n hi\u00e7biri spek\u00fclatif de\u011fil.",
+            sec6_p2: 'Eksik olan, do\u011fru y\u00f6nden gelen uygulama. Bu alandaki \u00e7o\u011fu ara\u00e7, doktorlar\u0131n neye ihtiyac\u0131 oldu\u011funu tahmin eden m\u00fchendisler taraf\u0131ndan yap\u0131lm\u0131\u015f. Yanl\u0131\u015f \u015feyleri optimize ediyorlar. \u0130\u015f ak\u0131\u015f\u0131n\u0131 ka\u00e7\u0131r\u0131yorlar. G\u00fcnlerinizi ger\u00e7ekte hangi ad\u0131mlar\u0131n t\u00fcketti\u011fini anlam\u0131yorlar.',
+            sec6_p3: 'Arac\u0131 bir klinisyen in\u015fa etti\u011finde, \u00f6ncelikler farkl\u0131d\u0131r. Aray\u00fcz, verileriniz hakk\u0131nda ger\u00e7ekte nas\u0131l d\u00fc\u015f\u00fcnd\u00fc\u011f\u00fcn\u00fczle e\u015fle\u015fir. K\u0131s\u0131tlamalar ger\u00e7ek d\u00fczenleyici gereksinimleri yans\u0131t\u0131r, varsay\u0131msal olanlar\u0131 de\u011fil. \u00c7\u0131kt\u0131, kongre ba\u015fvurusu i\u00e7in ger\u00e7ekten ihtiyac\u0131n\u0131z olan \u015feydir, yat\u0131r\u0131mc\u0131lar i\u00e7in bir demo de\u011fil.',
+
+            // Section 7 - Second-order
+            sec7_title: '\u0130kinci derece etkiler',
+            sec7_p1: 'Mekanik y\u00fck\u00fc kald\u0131rd\u0131\u011f\u0131n\u0131zda, ba\u015fka bir \u015fey olur.',
+            sec7_p2: '\u0130\u015fin kolay\u0131na ka\u00e7mazs\u0131n\u0131z. Bir hafta daha veri giri\u015fi demek oldu\u011fu i\u00e7in ekstra analizi atlamazs\u0131n\u0131z. \u00c7\u0131karma \u00e7ok s\u0131k\u0131c\u0131 oldu\u011fu i\u00e7in daha k\u00fc\u00e7\u00fck bir kohorta raz\u0131 olmazs\u0131n\u0131z.',
+            sec7_p3: 'Zihniniz daha berrak olur. Kimsenin bakacak bant geni\u015fli\u011fi olmayan literat\u00fcr bo\u015fluklar\u0131n\u0131 fark edersiniz. Temel makalelerdeki g\u00fcncelli\u011fini yitirmi\u015f iddialar\u0131 bulursunuz. Yeniden analiz edersiniz. Kolektif hatalar\u0131 daha h\u0131zl\u0131 d\u00fczeltirsiniz.',
+            sec7_p4: 'Daha fazla ara\u015ft\u0131rma yapars\u0131n\u0131z. Daha iyi ara\u015ft\u0131rma.',
+
+            // Section 8 - Closing
+            sec8_p1: 'Vakit \u015fimdi. Be\u015f y\u0131l sonra de\u011fil. Modeller daha iyi oldu\u011funda de\u011fil. \u015eimdi.',
+            sec8_highlight: 'Gizlili\u011fi koruyan, angarya i\u015fleri ortadan kald\u0131ran ve klinisyen muhakemesini \u00f6n plana \u00e7\u0131karan ara\u00e7lar in\u015fa ediyoruz. \u0130nsan d\u00fc\u015f\u00fcncesi insanlara aittir. Mekanik i\u015f makinelere.',
+
+            // Footer
+            footer_text: '&copy; 2026 &middot; Bir klinisyen taraf\u0131ndan, klinisyenler i\u00e7in in\u015fa edildi. &middot; <a href="https://github.com/borean/redakt" target="_blank">GitHub</a>'
+        }
+    };
+
+    // Store English originals on first load
+    const englishText = {};
+    const englishHTML = {};
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        englishText[el.getAttribute('data-i18n')] = el.textContent;
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        englishHTML[el.getAttribute('data-i18n-html')] = el.innerHTML;
+    });
+
+    function setLanguage(lang) {
+        document.documentElement.lang = lang;
+        localStorage.setItem('redakt-lang', lang);
+
+        // Update toggle buttons
+        document.getElementById('lang-tr').classList.toggle('active', lang === 'tr');
+        document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+
+        if (lang === 'tr' && translations.tr) {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations.tr[key]) el.textContent = translations.tr[key];
+            });
+            document.querySelectorAll('[data-i18n-html]').forEach(el => {
+                const key = el.getAttribute('data-i18n-html');
+                if (translations.tr[key]) el.innerHTML = translations.tr[key];
+            });
+        } else {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (englishText[key]) el.textContent = englishText[key];
+            });
+            document.querySelectorAll('[data-i18n-html]').forEach(el => {
+                const key = el.getAttribute('data-i18n-html');
+                if (englishHTML[key]) el.innerHTML = englishHTML[key];
+            });
+        }
+    }
+
+    // Toggle handlers
+    document.getElementById('lang-tr').addEventListener('click', () => setLanguage('tr'));
+    document.getElementById('lang-en').addEventListener('click', () => setLanguage('en'));
+
+    // Detect initial language: localStorage > navigator locale > default EN
+    const stored = localStorage.getItem('redakt-lang');
+    if (stored) {
+        setLanguage(stored);
+    } else {
+        const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+        setLanguage(browserLang.startsWith('tr') ? 'tr' : 'en');
+    }
+
+    // ── Nav scroll effect ──
+    const nav = document.getElementById('topnav');
+    window.addEventListener('scroll', () => {
+        nav.classList.toggle('scrolled', window.scrollY > 20);
+    });
+</script>
+
+</body>
+</html>

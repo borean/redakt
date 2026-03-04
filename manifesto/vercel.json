@@ -2,6 +2,8 @@
   "buildCommand": "",
   "outputDirectory": ".",
   "rewrites": [
+    { "source": "/guide", "destination": "/guide.html" },
+    { "source": "/manifesto", "destination": "/manifesto.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

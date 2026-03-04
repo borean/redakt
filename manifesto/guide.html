@@ -1,0 +1,1947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redakt — How to Use</title>
+    <meta name="description" content="Interactive 5-step guide to using Redakt for local medical document de-identification.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'><rect x='15' y='5' width='70' height='110' fill='%231c1917'/></svg>">
+    <style>
+        :root {
+            --bg: #fafaf9;
+            --text: #1c1917;
+            --text-secondary: #57534e;
+            --text-dim: #a8a29e;
+            --accent: #b45309;
+            --accent-hover: #92400e;
+            --accent-light: #fef3c7;
+            --border: #e7e5e4;
+            --code-bg: #f5f5f4;
+            --dark: #1c1917;
+            --dark-secondary: #292524;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Nav ── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(250, 250, 249, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+
+        nav.scrolled { border-bottom-color: var(--border); }
+
+        .nav-brand {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+
+        .nav-links a {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover { color: var(--text); }
+        .nav-links a.active { color: var(--accent); }
+
+        .nav-links .btn-nav {
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.4rem 1rem;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-links .btn-nav:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* ── Language toggle ── */
+        .lang-toggle {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .lang-toggle button {
+            font-family: inherit;
+            font-size: inherit;
+            letter-spacing: inherit;
+            border: none;
+            background: transparent;
+            padding: 0.35rem 0.6rem;
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: all 0.2s ease;
+        }
+
+        .lang-toggle button.active {
+            background: var(--dark);
+            color: white;
+        }
+
+        .lang-toggle button:not(.active):hover {
+            color: var(--text);
+        }
+
+        /* ── Small Hero ── */
+        .hero-small {
+            padding: 8rem 2rem 3rem;
+            text-align: center;
+        }
+
+        .hero-small h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 400;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.75rem;
+        }
+
+        .hero-small .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        /* ── Progress Bar ── */
+        .progress-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            padding: 2rem 2rem 3rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+
+        .progress-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .progress-circle.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        .progress-circle.complete {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: white;
+        }
+
+        .progress-line {
+            width: 40px;
+            height: 2px;
+            background: var(--border);
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .progress-line.complete {
+            background: var(--accent);
+        }
+
+        /* ── Step Cards ── */
+        .steps-container {
+            max-width: 1060px;
+            margin: 0 auto;
+            padding: 0 2rem 4rem;
+        }
+
+        .step-card {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2.5rem;
+            align-items: start;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.5;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .step-card.unlocked {
+            opacity: 1;
+        }
+
+        .step-card.current {
+            border-color: var(--accent);
+            box-shadow: 0 4px 24px rgba(180, 83, 9, 0.08);
+        }
+
+        .step-info {}
+
+        .step-number-label {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .step-card-title {
+            font-size: 1.5rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.75rem;
+        }
+
+        .step-card-desc {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 1.25rem;
+        }
+
+        .step-action-hint {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            color: var(--accent);
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .step-action-hint .arrow {
+            display: inline-block;
+            animation: hint-bob 1.5s ease-in-out infinite;
+        }
+
+        @keyframes hint-bob {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(5px); }
+        }
+
+        .step-complete-badge {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+            color: #6bbd6b;
+            display: none;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .step-complete-badge.visible {
+            display: flex;
+        }
+
+        /* ── Demo Panels ── */
+        .demo-panel {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.08);
+        }
+
+        .demo-titlebar {
+            background: #252525;
+            padding: 0.55rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .demo-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .demo-dot.red { background: #ef4444; }
+        .demo-dot.yellow { background: #f59e0b; }
+        .demo-dot.green { background: #22c55e; }
+
+        .demo-titlebar .title-text {
+            flex: 1;
+            text-align: center;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #e78a4e;
+            letter-spacing: 0.15em;
+        }
+
+        .demo-body {
+            background: #1a1a1a;
+            min-height: 260px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Demo toolbar */
+        .demo-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid #333;
+        }
+
+        .demo-btn {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.05em;
+            padding: 0.3rem 0.75rem;
+            border-radius: 4px;
+            border: 1px solid #333;
+            background: #252525;
+            color: #808080;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .demo-btn:hover {
+            border-color: #555;
+            color: #aaa;
+        }
+
+        .demo-btn.primary-btn {
+            background: #e78a4e;
+            color: #111;
+            border-color: #e78a4e;
+            font-weight: 700;
+        }
+
+        .demo-btn.primary-btn:hover {
+            background: #d07a3e;
+            border-color: #d07a3e;
+        }
+
+        .demo-btn.primary-btn.processing {
+            background: #c47a42;
+            border-color: #c47a42;
+        }
+
+        .demo-btn.steel-btn {
+            background: #6b8fd4;
+            color: white;
+            border-color: #6b8fd4;
+            font-weight: 700;
+        }
+
+        .demo-btn.steel-btn:hover {
+            background: #5b7fc4;
+            border-color: #5b7fc4;
+        }
+
+        .demo-btn.success {
+            border-color: #6bbd6b;
+            color: #6bbd6b;
+        }
+
+        .demo-chips {
+            display: flex;
+            gap: 0.3rem;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+
+        .demo-chip {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding: 0.12rem 0.4rem;
+            border-radius: 2px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+            opacity: 0;
+            transform: translateY(3px);
+        }
+
+        .demo-chip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .demo-chip.toggled-off {
+            opacity: 0.3 !important;
+        }
+
+        .demo-chip.name { background: #d46b6b55; border-color: #d46b6b88; color: #d46b6b; }
+        .demo-chip.date { background: #d4884e55; border-color: #d4884e88; color: #d4884e; }
+        .demo-chip.id { background: #d4a04e55; border-color: #d4a04e88; color: #d4a04e; }
+        .demo-chip.location { background: #6bbd6b55; border-color: #6bbd6b88; color: #6bbd6b; }
+        .demo-chip.age { background: #c47a8e55; border-color: #c47a8e88; color: #c47a8e; }
+        .demo-chip.manual { background: #6b8fd455; border-color: #6b8fd488; color: #6b8fd4; }
+
+        /* Demo text area */
+        .demo-content {
+            padding: 0.75rem 1rem;
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .demo-text {
+            font-size: 0.68rem;
+            line-height: 1.85;
+            color: #d4d4d4;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .demo-text .pii {
+            transition: all 0.4s ease;
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+
+        .demo-text .pii.highlight {
+            font-weight: 600;
+        }
+
+        .demo-text .pii.highlight.name { background: #d46b6b22; color: #d46b6b; border: 1px solid #d46b6b66; }
+        .demo-text .pii.highlight.date { background: #d4884e22; color: #d4884e; border: 1px solid #d4884e66; }
+        .demo-text .pii.highlight.id { background: #d4a04e22; color: #d4a04e; border: 1px solid #d4a04e66; }
+        .demo-text .pii.highlight.location { background: #6bbd6b22; color: #6bbd6b; border: 1px solid #6bbd6b66; }
+        .demo-text .pii.highlight.manual { background: #6b8fd422; color: #6b8fd4; border: 1px dashed #6b8fd488; }
+
+        .demo-text .pii.faded {
+            opacity: 0.15;
+        }
+
+        .demo-text .pii.redacted {
+            background: #808080;
+            color: #808080;
+            border-radius: 1px;
+            letter-spacing: -0.5px;
+            user-select: none;
+            font-size: 0.6rem;
+        }
+
+        .demo-text .pii.age-text {
+            color: #d4884e;
+            font-weight: 600;
+            background: none;
+            border: none;
+        }
+
+        /* Empty state */
+        .demo-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 200px;
+            color: #555;
+            gap: 0.75rem;
+        }
+
+        .demo-empty svg {
+            opacity: 0.3;
+        }
+
+        .demo-empty span {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* Demo status bar */
+        .demo-status {
+            padding: 0.4rem 0.75rem;
+            background: #111;
+            border-top: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .demo-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6bbd6b;
+            transition: background 0.3s ease;
+        }
+
+        .demo-status-dot.processing {
+            background: #e78a4e;
+            animation: pulse-dot 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .demo-status-text {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.5rem;
+            color: #808080;
+            letter-spacing: 0.05em;
+        }
+
+        .demo-status .local-badge {
+            margin-left: auto;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.45rem;
+            font-weight: 700;
+            color: #6bbd6b;
+            letter-spacing: 0.1em;
+            border: 1px solid #6bbd6b44;
+            border-radius: 2px;
+            padding: 1px 5px;
+        }
+
+        /* Floating REDACT button */
+        .float-redact-btn {
+            position: absolute;
+            display: none;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.55rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            background: #6b8fd4;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.65rem;
+            border-radius: 3px;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            transition: background 0.2s ease;
+        }
+
+        .float-redact-btn:hover {
+            background: #5b7fc4;
+        }
+
+        /* Export format buttons */
+        .export-formats {
+            display: flex;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+
+        .format-btn {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.55rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding: 0.25rem 0.6rem;
+            border-radius: 3px;
+            border: 1px solid #555;
+            background: #252525;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .format-btn:hover {
+            border-color: #e78a4e;
+            color: #e78a4e;
+        }
+
+        .format-btn.selected {
+            border-color: #6bbd6b;
+            color: #6bbd6b;
+            background: #6bbd6b22;
+        }
+
+        /* Success checkmark animation */
+        @keyframes checkmark-pop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .checkmark {
+            display: inline-block;
+            color: #6bbd6b;
+            font-size: 1.2rem;
+            animation: checkmark-pop 0.4s ease forwards;
+            margin-left: 0.5rem;
+        }
+
+        /* Progress bar animation */
+        .scan-progress {
+            height: 2px;
+            background: #333;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .scan-progress-fill {
+            height: 100%;
+            background: #e78a4e;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        /* ── Download section ── */
+        .download-section {
+            background: var(--code-bg);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+
+        .download-section h2 {
+            font-size: 2rem;
+            font-weight: 400;
+            margin-bottom: 1rem;
+        }
+
+        .download-section .desc {
+            color: var(--text-secondary);
+            max-width: 500px;
+            margin: 0 auto 2.5rem;
+            font-size: 1.05rem;
+        }
+
+        .download-cards {
+            display: flex;
+            gap: 1.25rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 860px;
+            margin: 0 auto 2rem;
+        }
+
+        .download-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1.5rem 1.25rem;
+            text-align: center;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.2s ease;
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .download-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .download-card .os-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .download-card .os-name {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            display: block;
+            margin-bottom: 0.35rem;
+        }
+
+        .download-card .os-detail {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .download-note {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            letter-spacing: 0.03em;
+        }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        footer a:hover { color: var(--text); }
+
+        /* ── Architecture Section ── */
+        .arch-section {
+            max-width: 1060px;
+            margin: 0 auto;
+            padding: 0 2rem 3.5rem;
+        }
+
+        .arch-section-title {
+            text-align: center;
+            font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .arch-section-subtitle {
+            text-align: center;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.7;
+        }
+
+        .arch-diagram {
+            background: var(--dark);
+            border-radius: 12px;
+            padding: 2.5rem 2rem;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.08);
+        }
+
+        .arch-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            flex: 1;
+            max-width: 240px;
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .arch-stage.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .arch-stage-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .arch-stage-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .arch-stage.download .arch-stage-icon {
+            background: #7aabdb1a;
+            border: 2px solid #7aabdb44;
+        }
+        .arch-stage.download .arch-stage-icon svg { color: #7aabdb; }
+
+        .arch-stage.disconnect .arch-stage-icon {
+            background: #d46b6b1a;
+            border: 2px solid #d46b6b44;
+        }
+        .arch-stage.disconnect .arch-stage-icon svg { color: #d46b6b; }
+
+        .arch-stage.process .arch-stage-icon {
+            background: #6bbd6b1a;
+            border: 2px solid #6bbd6b44;
+        }
+        .arch-stage.process .arch-stage-icon svg { color: #6bbd6b; }
+
+        /* Download progress bar inside the download icon */
+        .arch-download-bar {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 3px;
+            background: #7aabdb33;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .arch-download-fill {
+            height: 100%;
+            width: 0%;
+            background: #7aabdb;
+            border-radius: 2px;
+            transition: width 0.05s linear;
+        }
+
+        .arch-stage-label {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .arch-stage.download .arch-stage-label { color: #7aabdb; }
+        .arch-stage.disconnect .arch-stage-label { color: #d46b6b; }
+        .arch-stage.process .arch-stage-label { color: #6bbd6b; }
+
+        .arch-stage-desc {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 0.82rem;
+            color: #a8a29e;
+            line-height: 1.6;
+            max-width: 180px;
+        }
+
+        /* Connector arrows between stages */
+        .arch-connector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            flex-shrink: 0;
+            padding-top: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .arch-connector.visible {
+            opacity: 1;
+        }
+
+        .arch-connector svg {
+            color: #57534e;
+        }
+
+        /* Animated dashes for connector */
+        .arch-connector .conn-line {
+            stroke-dasharray: 6 4;
+            animation: arch-dash 1.5s linear infinite;
+        }
+
+        @keyframes arch-dash {
+            to { stroke-dashoffset: -20; }
+        }
+
+        /* Scissors animation for disconnect stage */
+        .arch-scissors-anim {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            opacity: 0;
+            transform: rotate(0deg);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .arch-stage.disconnect.visible .arch-scissors-anim {
+            opacity: 1;
+            animation: arch-snip 2s ease-in-out infinite;
+        }
+
+        @keyframes arch-snip {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-8deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(8deg); }
+        }
+
+        /* Shield pulse for process stage */
+        .arch-stage.process.visible .arch-stage-icon {
+            animation: arch-shield-pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes arch-shield-pulse {
+            0%, 100% { box-shadow: 0 0 0 0 #6bbd6b22; }
+            50% { box-shadow: 0 0 0 8px #6bbd6b00; }
+        }
+
+        /* One-time badge */
+        .arch-badge {
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.5rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            padding: 2px 6px;
+            border-radius: 2px;
+            margin-top: 0.6rem;
+            display: inline-block;
+        }
+
+        .arch-stage.download .arch-badge {
+            color: #7aabdb;
+            border: 1px solid #7aabdb44;
+            background: #7aabdb11;
+        }
+
+        .arch-stage.disconnect .arch-badge {
+            color: #d46b6b;
+            border: 1px solid #d46b6b44;
+            background: #d46b6b11;
+        }
+
+        .arch-stage.process .arch-badge {
+            color: #6bbd6b;
+            border: 1px solid #6bbd6b44;
+            background: #6bbd6b11;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 700px) {
+            .step-card {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                padding: 1.5rem;
+            }
+
+            .hero-small { padding: 7rem 1.25rem 2rem; }
+
+            .progress-bar { padding: 1.5rem 1rem 2rem; }
+            .progress-line { width: 20px; }
+            .progress-circle { width: 30px; height: 30px; font-size: 0.65rem; }
+
+            .steps-container { padding: 0 1rem 3rem; }
+
+            .download-cards { flex-direction: column; align-items: center; }
+            .download-card { min-width: 240px; max-width: 300px; }
+
+            .nav-links a.hide-mobile { display: none; }
+
+            .demo-chips { display: none; }
+
+            .arch-section { padding: 0 1rem 2.5rem; }
+
+            .arch-diagram {
+                flex-direction: column;
+                align-items: center;
+                gap: 0;
+                padding: 2rem 1.5rem;
+            }
+
+            .arch-stage {
+                max-width: 100%;
+            }
+
+            .arch-connector {
+                width: auto;
+                height: 40px;
+                transform: rotate(90deg);
+            }
+
+            .arch-stage-desc {
+                max-width: 240px;
+            }
+        }
+
+        /* Fix Turkish uppercase */
+        html[lang="tr"] .nav-links a,
+        html[lang="tr"] .step-number-label,
+        html[lang="tr"] .demo-status-text,
+        html[lang="tr"] .local-badge,
+        html[lang="tr"] .download-note,
+        html[lang="tr"] .arch-stage-label,
+        html[lang="tr"] .arch-badge {
+            text-transform: none;
+        }
+    </style>
+</head>
+<body>
+
+<nav id="topnav">
+    <a href="/" class="nav-brand"><svg width="12" height="16" viewBox="0 0 75 100" style="vertical-align: -2px; margin-right: 6px;"><rect x="4" y="4" width="67" height="92" rx="6" fill="currentColor"/></svg>REDAKT</a>
+    <div class="nav-links">
+        <a href="/" class="hide-mobile" data-i18n="nav_manifesto">Manifesto</a>
+        <a href="/guide" class="hide-mobile active" data-i18n="nav_guide">Guide</a>
+        <a href="#download" class="hide-mobile" data-i18n="nav_download">Download</a>
+        <div class="lang-toggle">
+            <button id="lang-tr">TR</button>
+            <button id="lang-en">EN</button>
+        </div>
+        <a href="https://github.com/borean/redakt" target="_blank" class="btn-nav" style="text-transform:none">GITHUB</a>
+    </div>
+</nav>
+
+<!-- ── Small Hero ── -->
+<section class="hero-small">
+    <h1 data-i18n="guide_title">How to Use Redakt</h1>
+    <p class="subtitle" data-i18n="guide_subtitle">De-identify a document in five interactive steps</p>
+</section>
+
+<!-- ── Progress Bar ── -->
+<div class="progress-bar" id="progress-bar">
+    <div class="progress-step">
+        <div class="progress-circle active" data-step="1">1</div>
+    </div>
+    <div class="progress-line" data-line="1"></div>
+    <div class="progress-step">
+        <div class="progress-circle" data-step="2">2</div>
+    </div>
+    <div class="progress-line" data-line="2"></div>
+    <div class="progress-step">
+        <div class="progress-circle" data-step="3">3</div>
+    </div>
+    <div class="progress-line" data-line="3"></div>
+    <div class="progress-step">
+        <div class="progress-circle" data-step="4">4</div>
+    </div>
+    <div class="progress-line" data-line="4"></div>
+    <div class="progress-step">
+        <div class="progress-circle" data-step="5">5</div>
+    </div>
+</div>
+
+<!-- ── How It Works — Architecture ── -->
+<section class="arch-section" id="arch-section">
+    <h2 class="arch-section-title" data-i18n="arch_title">How It Works</h2>
+    <p class="arch-section-subtitle" data-i18n="arch_subtitle">One download. Then fully offline, forever.</p>
+
+    <div class="arch-diagram" id="arch-diagram">
+
+        <!-- Stage 1: Download -->
+        <div class="arch-stage download" data-arch="1">
+            <div class="arch-stage-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19.35 10.04A7.49 7.49 0 0 0 12 4a7.48 7.48 0 0 0-6.92 4.63A5.99 5.99 0 0 0 6 20h13a5 5 0 0 0 .35-9.96z"/>
+                    <polyline points="8 14 12 18 16 14"/>
+                    <line x1="12" y1="12" x2="12" y2="18"/>
+                </svg>
+                <div class="arch-download-bar">
+                    <div class="arch-download-fill" id="arch-dl-fill"></div>
+                </div>
+            </div>
+            <div class="arch-stage-label" data-i18n="arch_download_label">DOWNLOAD</div>
+            <div class="arch-stage-desc" data-i18n="arch_download_desc">One-time model download from GitHub. 6-21 GB depending on model size.</div>
+            <div class="arch-badge" data-i18n="arch_download_badge">ONE TIME ONLY</div>
+        </div>
+
+        <!-- Connector 1 → 2 -->
+        <div class="arch-connector" data-arch-conn="1">
+            <svg width="48" height="24" viewBox="0 0 48 24" fill="none">
+                <line class="conn-line" x1="0" y1="12" x2="36" y2="12" stroke="currentColor" stroke-width="1.5"/>
+                <polyline points="34,6 42,12 34,18" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+
+        <!-- Stage 2: Disconnect -->
+        <div class="arch-stage disconnect" data-arch="2">
+            <div class="arch-stage-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19.35 10.04A7.49 7.49 0 0 0 12 4a7.48 7.48 0 0 0-6.92 4.63A5.99 5.99 0 0 0 6 20h13a5 5 0 0 0 .35-9.96z"/>
+                    <line x1="4" y1="4" x2="20" y2="20" stroke-width="2.5"/>
+                </svg>
+                <svg class="arch-scissors-anim" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d46b6b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="6" cy="6" r="3"/>
+                    <circle cx="6" cy="18" r="3"/>
+                    <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                    <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                    <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div class="arch-stage-label" data-i18n="arch_disconnect_label">DISCONNECT</div>
+            <div class="arch-stage-desc" data-i18n="arch_disconnect_desc">Internet connection severed. Never used again.</div>
+            <div class="arch-badge" data-i18n="arch_disconnect_badge">ZERO NETWORK</div>
+        </div>
+
+        <!-- Connector 2 → 3 -->
+        <div class="arch-connector" data-arch-conn="2">
+            <svg width="48" height="24" viewBox="0 0 48 24" fill="none">
+                <line class="conn-line" x1="0" y1="12" x2="36" y2="12" stroke="currentColor" stroke-width="1.5"/>
+                <polyline points="34,6 42,12 34,18" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+
+        <!-- Stage 3: Process Locally -->
+        <div class="arch-stage process" data-arch="3">
+            <div class="arch-stage-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                </svg>
+            </div>
+            <div class="arch-stage-label" data-i18n="arch_process_label">PROCESS LOCALLY</div>
+            <div class="arch-stage-desc" data-i18n="arch_process_desc">Documents processed 100% on your machine. CPU only, no GPU needed.</div>
+            <div class="arch-badge" data-i18n="arch_process_badge">YOUR DATA STAYS</div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ── Steps ── -->
+<div class="steps-container">
+
+    <!-- Step 1: Open a Document -->
+    <div class="step-card unlocked current" id="step-1" data-step="1">
+        <div class="step-info">
+            <div class="step-number-label" data-i18n="step1_label">STEP 1</div>
+            <h2 class="step-card-title" data-i18n="step1_title">Open a Document</h2>
+            <p class="step-card-desc" data-i18n="step1_desc">Drag-and-drop or click OPEN. PDF, DOCX, TXT, PNG, JPG are supported.</p>
+            <div class="step-action-hint" data-i18n="step1_hint"><span class="arrow">&rarr;</span> Click OPEN in the demo panel</div>
+            <div class="step-complete-badge" data-i18n="step_complete_msg">&#10003; Complete</div>
+        </div>
+        <div class="demo-panel">
+            <div class="demo-titlebar">
+                <div class="demo-dot red"></div>
+                <div class="demo-dot yellow"></div>
+                <div class="demo-dot green"></div>
+                <span class="title-text">REDAKT</span>
+            </div>
+            <div class="demo-body">
+                <div class="demo-toolbar">
+                    <div class="demo-btn primary-btn" id="btn-open" data-i18n="open_btn">OPEN</div>
+                </div>
+                <div class="demo-content" id="step1-content">
+                    <div class="demo-empty">
+                        <svg width="40" height="48" viewBox="0 0 40 48" fill="none" stroke="#555" stroke-width="1.5">
+                            <rect x="4" y="2" width="32" height="44" rx="3"/>
+                            <line x1="12" y1="14" x2="28" y2="14"/>
+                            <line x1="12" y1="20" x2="28" y2="20"/>
+                            <line x1="12" y1="26" x2="22" y2="26"/>
+                        </svg>
+                        <span data-i18n="empty_state">Drop a file or click OPEN</span>
+                    </div>
+                </div>
+                <div class="demo-status">
+                    <div class="demo-status-dot"></div>
+                    <span class="demo-status-text" data-i18n="status_ready">READY</span>
+                    <span class="local-badge">100% LOCAL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Scan for PII -->
+    <div class="step-card" id="step-2" data-step="2">
+        <div class="step-info">
+            <div class="step-number-label" data-i18n="step2_label">STEP 2</div>
+            <h2 class="step-card-title" data-i18n="step2_title">Scan for PII</h2>
+            <p class="step-card-desc" data-i18n="step2_desc">The local LLM detects names, dates, IDs, and addresses. Everything stays on your computer.</p>
+            <div class="step-action-hint" data-i18n="step2_hint"><span class="arrow">&rarr;</span> Click SCAN in the demo panel</div>
+            <div class="step-complete-badge" data-i18n="step_complete_msg">&#10003; Complete</div>
+        </div>
+        <div class="demo-panel">
+            <div class="demo-titlebar">
+                <div class="demo-dot red"></div>
+                <div class="demo-dot yellow"></div>
+                <div class="demo-dot green"></div>
+                <span class="title-text">REDAKT</span>
+            </div>
+            <div class="demo-body">
+                <div class="demo-toolbar">
+                    <div class="demo-btn primary-btn" id="btn-scan" data-i18n="scan_btn">SCAN</div>
+                    <div class="demo-chips" id="step2-chips">
+                        <span class="demo-chip name" data-i18n="chip_name">NAME</span>
+                        <span class="demo-chip date" data-i18n="chip_date">DATE</span>
+                        <span class="demo-chip id" data-i18n="chip_id">ID</span>
+                        <span class="demo-chip location" data-i18n="chip_loc">LOCATION</span>
+                    </div>
+                </div>
+                <div class="scan-progress" id="scan-progress"><div class="scan-progress-fill" id="scan-fill"></div></div>
+                <div class="demo-content">
+                    <div class="demo-text" id="step2-text"></div>
+                </div>
+                <div class="demo-status">
+                    <div class="demo-status-dot" id="step2-dot"></div>
+                    <span class="demo-status-text" id="step2-status" data-i18n="status_ready">READY</span>
+                    <span class="local-badge">100% LOCAL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Review & Toggle -->
+    <div class="step-card" id="step-3" data-step="3">
+        <div class="step-info">
+            <div class="step-number-label" data-i18n="step3_label">STEP 3</div>
+            <h2 class="step-card-title" data-i18n="step3_title">Review &amp; Toggle</h2>
+            <p class="step-card-desc" data-i18n="step3_desc">Toggle categories or individual items on/off. Uncheck anything you want to remain visible.</p>
+            <div class="step-action-hint" data-i18n="step3_hint"><span class="arrow">&rarr;</span> Click the category chips to toggle</div>
+            <div class="step-complete-badge" data-i18n="step_complete_msg">&#10003; Complete</div>
+        </div>
+        <div class="demo-panel">
+            <div class="demo-titlebar">
+                <div class="demo-dot red"></div>
+                <div class="demo-dot yellow"></div>
+                <div class="demo-dot green"></div>
+                <span class="title-text">REDAKT</span>
+            </div>
+            <div class="demo-body">
+                <div class="demo-toolbar">
+                    <div class="demo-chips" id="step3-chips">
+                        <span class="demo-chip name visible" data-cat="name" data-i18n="chip_name">NAME</span>
+                        <span class="demo-chip date visible" data-cat="date" data-i18n="chip_date">DATE</span>
+                        <span class="demo-chip id visible" data-cat="id" data-i18n="chip_id">ID</span>
+                        <span class="demo-chip location visible" data-cat="location" data-i18n="chip_loc">LOCATION</span>
+                    </div>
+                    <span class="demo-btn" id="step3-count" style="border:none;background:none;color:#808080;cursor:default;font-size:0.55rem;"></span>
+                </div>
+                <div class="demo-content">
+                    <div class="demo-text" id="step3-text"></div>
+                </div>
+                <div class="demo-status">
+                    <div class="demo-status-dot"></div>
+                    <span class="demo-status-text" id="step3-status">6 PII</span>
+                    <span class="local-badge">100% LOCAL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 4: Manual Redaction -->
+    <div class="step-card" id="step-4" data-step="4">
+        <div class="step-info">
+            <div class="step-number-label" data-i18n="step4_label">STEP 4</div>
+            <h2 class="step-card-title" data-i18n="step4_title">Manual Redaction</h2>
+            <p class="step-card-desc" data-i18n="step4_desc">LLM missed something? Select text and click REDACT to manually redact it.</p>
+            <div class="step-action-hint" data-i18n="step4_hint"><span class="arrow">&rarr;</span> Select text, then click REDACT</div>
+            <div class="step-complete-badge" data-i18n="step_complete_msg">&#10003; Complete</div>
+        </div>
+        <div class="demo-panel">
+            <div class="demo-titlebar">
+                <div class="demo-dot red"></div>
+                <div class="demo-dot yellow"></div>
+                <div class="demo-dot green"></div>
+                <span class="title-text">REDAKT</span>
+            </div>
+            <div class="demo-body" style="position:relative">
+                <div class="demo-toolbar">
+                    <div class="demo-chips" id="step4-chips">
+                        <span class="demo-chip name visible">NAME</span>
+                        <span class="demo-chip date visible">DATE</span>
+                        <span class="demo-chip id visible">ID</span>
+                        <span class="demo-chip location visible">LOCATION</span>
+                        <span class="demo-chip manual" id="chip-manual">MANUAL</span>
+                    </div>
+                </div>
+                <div class="demo-content" id="step4-wrapper" style="position:relative">
+                    <div class="demo-text" id="step4-text"></div>
+                    <button class="float-redact-btn" id="float-redact" data-i18n="redact_btn">REDACT</button>
+                </div>
+                <div class="demo-status">
+                    <div class="demo-status-dot"></div>
+                    <span class="demo-status-text" id="step4-status">6 PII</span>
+                    <span class="local-badge">100% LOCAL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 5: Export -->
+    <div class="step-card" id="step-5" data-step="5">
+        <div class="step-info">
+            <div class="step-number-label" data-i18n="step5_label">STEP 5</div>
+            <h2 class="step-card-title" data-i18n="step5_title">Export</h2>
+            <p class="step-card-desc" data-i18n="step5_desc">Export as TXT, PDF, DOCX, or Markdown. Ready to share.</p>
+            <div class="step-action-hint" data-i18n="step5_hint"><span class="arrow">&rarr;</span> Click EXPORT, then pick a format</div>
+            <div class="step-complete-badge" data-i18n="step_complete_msg">&#10003; Complete</div>
+        </div>
+        <div class="demo-panel">
+            <div class="demo-titlebar">
+                <div class="demo-dot red"></div>
+                <div class="demo-dot yellow"></div>
+                <div class="demo-dot green"></div>
+                <span class="title-text">REDAKT</span>
+            </div>
+            <div class="demo-body">
+                <div class="demo-toolbar">
+                    <div class="demo-btn primary-btn" id="btn-export" data-i18n="export_btn">EXPORT</div>
+                    <div class="export-formats" id="export-formats" style="display:none">
+                        <div class="format-btn" data-fmt="TXT">TXT</div>
+                        <div class="format-btn" data-fmt="PDF">PDF</div>
+                        <div class="format-btn" data-fmt="DOCX">DOCX</div>
+                        <div class="format-btn" data-fmt="MD">MD</div>
+                    </div>
+                    <span id="export-check"></span>
+                </div>
+                <div class="demo-content">
+                    <div class="demo-text" id="step5-text"></div>
+                </div>
+                <div class="demo-status">
+                    <div class="demo-status-dot"></div>
+                    <span class="demo-status-text" id="step5-status" data-i18n="status_redacted">REDACTION COMPLETE</span>
+                    <span class="local-badge">100% LOCAL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── Download ── -->
+<section class="download-section" id="download">
+    <h2 data-i18n="dl_title">Download Redakt</h2>
+    <p class="desc" data-i18n="dl_desc">
+        No installation wizards. No dependencies. Download, open, and start de-identifying.
+    </p>
+    <div class="download-cards">
+        <a class="download-card" href="https://github.com/borean/redakt/releases/latest/download/Redakt_0.3.2_aarch64.dmg" style="text-decoration: none; color: inherit;">
+            <div class="os-icon"><svg width="32" height="32" viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15.1 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></div>
+            <span class="os-name">MAC</span>
+            <span class="os-detail">Apple Silicon</span>
+        </a>
+        <a class="download-card" href="https://github.com/borean/redakt/releases/latest/download/Redakt_0.3.2_x64.dmg" style="text-decoration: none; color: inherit;">
+            <div class="os-icon"><svg width="32" height="32" viewBox="0 0 384 512" fill="currentColor"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15.1 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></div>
+            <span class="os-name">MAC</span>
+            <span class="os-detail">Intel</span>
+        </a>
+        <a class="download-card" href="https://github.com/borean/redakt/releases/latest/download/Redakt_0.3.2_x64-setup.exe" style="text-decoration: none; color: inherit;">
+            <div class="os-icon"><svg width="32" height="32" viewBox="0 0 448 512" fill="currentColor"><path d="M0 93.7l183.6-25.3v177.4H0V93.7zm0 324.6l183.6 25.3V268.4H0v149.9zm203.8 28L448 480V268.4H203.8v177.9zm0-380.6v180.1H448V32L203.8 65.7z"/></svg></div>
+            <span class="os-name">WINDOWS</span>
+            <span class="os-detail">x64</span>
+        </a>
+        <a class="download-card" href="https://github.com/borean/redakt/releases/latest/download/Redakt_0.3.2_amd64.deb" style="text-decoration: none; color: inherit;">
+            <div class="os-icon"><svg width="32" height="32" viewBox="0 0 448 512" fill="currentColor"><path d="M220.8 123.3c1 .5 1.8 1.7 3 1.7 1.1 0 2.8-.4 2.9-1.5.2-1.4-1.9-2.3-3.2-2.9-1.7-.7-3.9-1-5.5-.1-.4.2-.8.7-.6 1.1.3 1.3 2.3 1.1 3.4 1.7zm-21.9 1.7c1.2 0 2-1.2 3-1.7 1.1-.6 3.1-.4 3.5-1.6.2-.4-.2-.9-.6-1.1-1.6-.9-3.8-.6-5.5.1-1.3.6-3.4 1.5-3.2 2.9.1 1 1.8 1.5 2.8 1.4zM420 403.8c-3.6-4-5.3-11.6-7.2-19.7-1.8-8.1-3.9-16.8-10.5-22.4-1.3-1.1-2.6-2.1-4-2.9-1.3-.8-2.7-1.5-4.1-2 9.2-27.3 5.6-54.5-3.7-79.1-11.4-30.1-31.3-56.4-46.5-74.4-17.1-21.5-33.7-41.9-33.4-72C311.1 85.4 315.7.1 234.8 0 132.4-.2 158 103.4 156.9 135.2c-1.7 23.4-6.4 41.8-22.5 64.7-18.9 22.5-45.5 58.8-58.1 96.7-6 17.9-8.8 36.1-6.2 53.3-6.5 5.8-11.4 14.7-16.6 20.2-4.2 4.3-10.3 5.9-17 8.3s-14 6-18.5 14.5c-2.1 3.9-2.8 8.1-2.8 12.4 0 3.9.6 7.9 1.2 11.8 1.2 8.1 2.5 15.7.8 20.8-5.2 14.4-5.9 24.4-2.2 31.7 3.8 7.3 11.4 10.5 20.1 12.3 17.3 3.6 40.8 2.7 59.3 12.5 19.8 10.4 39.9 14.1 55.9 10.4 11.6-2.6 21.1-9.6 25.9-20.2 12.5-.1 26.3-5.4 48.3-6.6 14.9-1.2 33.6 5.3 55.1 4.1.6 2.3 1.4 4.6 2.5 6.7v.1c8.3 16.7 23.8 24.3 40.3 23 16.6-1.3 34.1-11 48.3-27.9 13.6-16.4 36-23.2 50.9-32.2 7.4-4.5 13.4-10.1 13.9-18.3.4-8.2-4.4-17.3-15.5-29.7zM223.7 87.3c9.8-22.2 34.2-21.8 44-.4 6.5 14.2 3.6 30.9-4.3 40.4-1.6-.8-5.9-2.6-12.6-4.9 1.1-1.2 3.1-2.7 3.9-4.6 4.8-11.8-.2-27-9.1-27.3-7.3-.5-13.9 10.8-11.8 23-4.1-2-9.4-3.5-13-4.4-1-6.9-.3-14.6 2.9-21.8zM183 75.8c10.1 0 20.8 14.2 19.1 33.5-3.5 1-7.1 2.5-10.2 4.6 1.2-8.9-3.3-20.1-9.6-19.6-8.4.7-9.8 21.2-1.8 28.1C175 124.4 162.6 128 151 130.8c-10.1-22.8-2.8-55 32-55zm86.5 237.2c-3.8 0-7.5-.7-11.1-2.1-8.1-3.3-15.1-10.1-18.9-19.3-3.9-9.6-4.8-20.9-2.3-31.3 1.2-5.1 3.2-10 5.9-14.3 3.3-5.2 7.6-9.3 12.4-12.3 4.7-2.9 10-4.6 15.5-5.1 6.3-.6 12.8.4 18.7 3.1 5 2.3 9.4 5.6 13 9.7 3.4 3.9 6 8.4 7.7 13.4 3.1 8.8 3.1 18.6.1 27.1-2.8 8-8.2 14.7-15 19.1-6.4 4.1-14 6.2-21.7 6.8-1.4.2-2.9.2-4.2.2zm193.5-79.8c0 0 0 0 0 0z"/></svg></div>
+            <span class="os-name">LINUX</span>
+            <span class="os-detail">x64 (.deb)</span>
+        </a>
+    </div>
+    <p class="download-note" data-i18n-html="dl_note">
+        The app is ~8 MB. Choose from 3 model sizes (6 GB to 21 GB) &mdash; downloads automatically on first launch.<br>
+        <strong>macOS:</strong> Open the DMG and drag Redakt to Applications.<br>
+        <strong>Windows:</strong> Run the installer (.exe) and follow the prompts.<br>
+        <strong>Linux:</strong> Install with <code>sudo dpkg -i Redakt_*.deb</code>. RPM also available on GitHub.
+    </p>
+</section>
+
+<footer>
+    <p data-i18n-html="footer_text">&copy; 2026 &middot; Built by a clinician, for clinicians. &middot;
+    <a href="https://github.com/borean/redakt" target="_blank">GitHub</a></p>
+</footer>
+
+<script>
+// ── Translations ──
+const translations = {
+    tr: {
+        // Nav
+        nav_manifesto: 'MANIFESTO',
+        nav_guide: 'REHBER',
+        nav_download: '\u0130ND\u0130R',
+
+        // Hero
+        guide_title: 'Redakt Nas\u0131l Kullan\u0131l\u0131r',
+        guide_subtitle: 'Be\u015f ad\u0131mda belge anonimle\u015ftirme',
+
+        // Step labels
+        step1_label: 'ADIM 1',
+        step2_label: 'ADIM 2',
+        step3_label: 'ADIM 3',
+        step4_label: 'ADIM 4',
+        step5_label: 'ADIM 5',
+
+        // Step 1
+        step1_title: 'Belge A\u00e7',
+        step1_desc: 'S\u00fcr\u00fckle-b\u0131rak veya A\u00c7\u2019a t\u0131kla. PDF, DOCX, TXT, PNG, JPG desteklenir.',
+        step1_hint: '\u2192 Demo panelde A\u00c7\u2019a t\u0131klay\u0131n',
+
+        // Step 2
+        step2_title: 'PII Tara',
+        step2_desc: 'Yerel LLM adlar\u0131, tarihleri, kimlikleri, adresleri tespit eder. Her \u015fey bilgisayar\u0131n\u0131zda kal\u0131r.',
+        step2_hint: '\u2192 Demo panelde TARA\u2019ya t\u0131klay\u0131n',
+
+        // Step 3
+        step3_title: '\u0130ncele ve D\u00fczenle',
+        step3_desc: 'Kategorileri veya tek tek \u00f6\u011feleri a\u00e7/kapa. G\u00f6r\u00fcn\u00fcr kalmas\u0131n\u0131 istedi\u011finiz bilgilerin i\u015faretini kald\u0131r\u0131n.',
+        step3_hint: '\u2192 Kategori \u00e7iplerini t\u0131klayarak a\u00e7\u0131p kapat\u0131n',
+
+        // Step 4
+        step4_title: 'Elle Karartma',
+        step4_desc: 'LLM bir \u015feyi ka\u00e7\u0131rd\u0131 m\u0131? Metni se\u00e7in ve KARART\u2019a t\u0131klayarak elle karart\u0131n.',
+        step4_hint: '\u2192 Metin se\u00e7in, sonra KARART\u2019a t\u0131klay\u0131n',
+
+        // Step 5
+        step5_title: 'D\u0131\u015fa Aktar',
+        step5_desc: 'TXT, PDF, DOCX veya Markdown olarak d\u0131\u015fa aktar\u0131n. Payla\u015f\u0131ma haz\u0131r.',
+        step5_hint: '\u2192 DI\u015eA AKTAR\u2019a t\u0131klay\u0131n, format se\u00e7in',
+
+        // Buttons
+        open_btn: 'A\u00c7',
+        scan_btn: 'TARA',
+        export_btn: 'DI\u015eA AKTAR',
+        redact_btn: 'KARART',
+
+        // Chips
+        chip_name: 'AD',
+        chip_date: 'TAR\u0130H',
+        chip_id: 'K\u0130ML\u0130K',
+        chip_loc: 'KONUM',
+
+        // Status / misc
+        status_ready: 'HAZIR',
+        status_redacted: 'KARARTMA TAMAMLANDI',
+        empty_state: 'Dosya s\u00fcr\u00fckleyin veya A\u00c7\u2019a t\u0131klay\u0131n',
+        step_complete_msg: '\u2713 Tamamland\u0131',
+
+        // Download
+        dl_title: 'Redakt\u2019\u0131 \u0130ndir',
+        dl_desc: 'Kurulum sihirbaz\u0131 yok. Ba\u011f\u0131ml\u0131l\u0131k yok. \u0130ndirin, a\u00e7\u0131n ve anonimle\u015ftirmeye ba\u015flay\u0131n.',
+        dl_note: 'Uygulama ~8 MB. 3 model boyutundan se\u00e7in (6 GB\u2019den 21 GB\u2019ye) \u2014 ilk a\u00e7\u0131l\u0131\u015fta otomatik indirilir.<br><strong>macOS:</strong> DMG\u2019y\u0131 a\u00e7\u0131n ve Redakt\u2019\u0131 Uygulamalar klas\u00f6r\u00fcne s\u00fcr\u00fckleyin.<br><strong>Windows:</strong> Y\u00fckleyiciyi (.exe) \u00e7al\u0131\u015ft\u0131r\u0131n ve ad\u0131mlar\u0131 izleyin.<br><strong>Linux:</strong> <code>sudo dpkg -i Redakt_*.deb</code> ile kurun. RPM de GitHub\u2019da mevcut.',
+
+        // Architecture section
+        arch_title: 'Nas\u0131l \u00c7al\u0131\u015f\u0131r',
+        arch_subtitle: 'Tek seferlik indirme. Sonra tamamen \u00e7evrimd\u0131\u015f\u0131, sonsuza dek.',
+        arch_download_label: '\u0130ND\u0130R',
+        arch_download_desc: 'GitHub\'dan tek seferlik model indirme. Model boyutuna g\u00f6re 6-21 GB.',
+        arch_download_badge: 'TEK SEFER\u0130K',
+        arch_disconnect_label: 'BA\u011eLANTIYI KES',
+        arch_disconnect_desc: '\u0130nternet ba\u011flant\u0131s\u0131 kesilir. Bir daha asla kullan\u0131lmaz.',
+        arch_disconnect_badge: 'SIFIR A\u011e',
+        arch_process_label: 'YEREL \u0130\u015eLE',
+        arch_process_desc: 'Belgeler %100 kendi bilgisayar\u0131n\u0131zda i\u015flenir. Sadece CPU, GPU gerekmez.',
+        arch_process_badge: 'VER\u0130N\u0130Z S\u0130ZDE KALIR',
+
+        // Footer
+        footer_text: '&copy; 2026 &middot; Bir klinisyen taraf\u0131ndan, klinisyenler i\u00e7in in\u015fa edildi. &middot; <a href="https://github.com/borean/redakt" target="_blank">GitHub</a>'
+    }
+};
+
+// ── Sample content per language ──
+const sampleContent = {
+    en: {
+        raw: 'Pediatric Endocrine Outpatient\n\nPatient: <span class="pii name">Sarah Mitchell</span>\nSSN: <span class="pii id">491-07-8356</span>\nVisit: <span class="pii date" data-age="7 yrs 10 mo">03/03/2026</span>\nDOB: <span class="pii date">11/04/2018</span>\nSex: Female\n\nWeight: 23.12 kg (SDS: -0.57)\nHeight: 134.5 cm (SDS: 1.60)\nBMI: 12.78 kg/m\u00b2 (SDS: -2.15)\n\n<span class="pii name">Dr. James Howard, MD</span>\n<span class="pii location">Oakwood University Hospital</span>',
+        header: 'Pediatric Endocrine Outpatient'
+    },
+    tr: {
+        raw: 'Pediatrik Endokrin Poliklinik\n\nHasta: <span class="pii name">Elif Demir</span>\nTC: <span class="pii id">98765432109</span>\nMuayene: <span class="pii date" data-age="7 y\u0131l 10 ay">03/03/2026</span>\nDo\u011fum: <span class="pii date">11/04/2018</span>\nCinsiyet: K\u0131z\n\nA\u011f\u0131rl\u0131k: 23,12 kg (SDS: -0,57)\nBoy: 134,5 cm (SDS: 1,60)\nVK\u0130: 12,78 kg/m\u00b2 (SDS: -2,15)\n\n<span class="pii name">Do\u00e7. Dr. Ay\u015fe Kara</span>\n<span class="pii location">\u00c7\u0131nar \u00dcniversitesi T\u0131p Fak.</span>',
+        header: 'Pediatrik Endokrin Poliklinik'
+    }
+};
+
+// ── i18n engine ──
+const englishText = {};
+const englishHTML = {};
+
+document.querySelectorAll('[data-i18n]').forEach(el => {
+    englishText[el.getAttribute('data-i18n')] = el.textContent;
+});
+document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    englishHTML[el.getAttribute('data-i18n-html')] = el.innerHTML;
+});
+
+function getLang() {
+    return document.documentElement.lang === 'tr' ? 'tr' : 'en';
+}
+
+function setLanguage(lang) {
+    document.documentElement.lang = lang;
+    localStorage.setItem('redakt-lang', lang);
+
+    document.getElementById('lang-tr').classList.toggle('active', lang === 'tr');
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+
+    if (lang === 'tr' && translations.tr) {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations.tr[key]) el.textContent = translations.tr[key];
+        });
+        document.querySelectorAll('[data-i18n-html]').forEach(el => {
+            const key = el.getAttribute('data-i18n-html');
+            if (translations.tr[key]) el.innerHTML = translations.tr[key];
+        });
+    } else {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (englishText[key]) el.textContent = englishText[key];
+        });
+        document.querySelectorAll('[data-i18n-html]').forEach(el => {
+            const key = el.getAttribute('data-i18n-html');
+            if (englishHTML[key]) el.innerHTML = englishHTML[key];
+        });
+    }
+
+    // Rebuild demo content for steps that have loaded text
+    rebuildDemos();
+}
+
+document.getElementById('lang-tr').addEventListener('click', () => setLanguage('tr'));
+document.getElementById('lang-en').addEventListener('click', () => setLanguage('en'));
+
+// Initial language
+const stored = localStorage.getItem('redakt-lang');
+if (stored) {
+    setLanguage(stored);
+} else {
+    const browserLang = (navigator.language || navigator.userLanguage || '').toLowerCase();
+    setLanguage(browserLang.startsWith('tr') ? 'tr' : 'en');
+}
+
+// ── Nav scroll effect ──
+const nav = document.getElementById('topnav');
+window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ── Smooth scroll for anchor links ──
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+});
+
+// ── Step state management ──
+const stepState = { completed: new Set(), current: 1 };
+
+function makeBlocks(text) {
+    return '\u2588'.repeat(Math.max(text.length, 3));
+}
+
+function getContent() {
+    return sampleContent[getLang()] || sampleContent.en;
+}
+
+function updateProgressBar() {
+    for (let i = 1; i <= 5; i++) {
+        const circle = document.querySelector(`.progress-circle[data-step="${i}"]`);
+        const line = document.querySelector(`.progress-line[data-line="${i}"]`);
+        circle.classList.remove('active', 'complete');
+        if (stepState.completed.has(i)) {
+            circle.classList.add('complete');
+            circle.innerHTML = '&#10003;';
+        } else if (i === stepState.current) {
+            circle.classList.add('active');
+            circle.textContent = i;
+        } else {
+            circle.textContent = i;
+        }
+        if (line) {
+            line.classList.toggle('complete', stepState.completed.has(i));
+        }
+    }
+}
+
+function unlockStep(n) {
+    const card = document.getElementById('step-' + n);
+    if (card) {
+        card.classList.add('unlocked');
+    }
+}
+
+function completeStep(n) {
+    stepState.completed.add(n);
+    const card = document.getElementById('step-' + n);
+    if (card) {
+        card.classList.remove('current');
+        const badge = card.querySelector('.step-complete-badge');
+        if (badge) badge.classList.add('visible');
+        const hint = card.querySelector('.step-action-hint');
+        if (hint) hint.style.display = 'none';
+    }
+    // Advance
+    if (n < 5) {
+        stepState.current = n + 1;
+        const next = document.getElementById('step-' + (n + 1));
+        if (next) {
+            next.classList.add('unlocked', 'current');
+            setTimeout(() => {
+                next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        }
+    } else {
+        stepState.current = 6; // all done
+    }
+    updateProgressBar();
+}
+
+// Progress circle click -> scroll to step
+document.querySelectorAll('.progress-circle').forEach(circle => {
+    circle.addEventListener('click', () => {
+        const n = parseInt(circle.getAttribute('data-step'));
+        const card = document.getElementById('step-' + n);
+        if (card && card.classList.contains('unlocked')) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+});
+
+// ── Rebuild demos on lang change ──
+function rebuildDemos() {
+    // Only rebuild steps that have been started
+    if (stepState.completed.has(1) || stepState.current >= 2) {
+        loadStep2Text();
+    }
+    if (stepState.completed.has(2) || stepState.current >= 3) {
+        loadStep3Text();
+    }
+    if (stepState.completed.has(3) || stepState.current >= 4) {
+        loadStep4Text();
+    }
+    if (stepState.completed.has(4) || stepState.current >= 5) {
+        loadStep5Text();
+    }
+    // Step 1: if completed, show the document text
+    if (stepState.completed.has(1)) {
+        const content = getContent();
+        document.getElementById('step1-content').innerHTML = '<div class="demo-text" style="white-space:pre-wrap">' + content.raw + '</div>';
+    }
+}
+
+// ── Step 1: Open ──
+document.getElementById('btn-open').addEventListener('click', function() {
+    if (stepState.completed.has(1)) return;
+    const content = getContent();
+    const el = document.getElementById('step1-content');
+    el.style.opacity = '0';
+    el.innerHTML = '<div class="demo-text" style="white-space:pre-wrap">' + content.raw + '</div>';
+    setTimeout(() => { el.style.transition = 'opacity 0.5s ease'; el.style.opacity = '1'; }, 50);
+    // Populate step 2 text
+    loadStep2Text();
+    setTimeout(() => completeStep(1), 800);
+});
+
+function loadStep2Text() {
+    const content = getContent();
+    document.getElementById('step2-text').innerHTML = content.raw;
+}
+
+// ── Step 2: Scan ──
+let scanning = false;
+document.getElementById('btn-scan').addEventListener('click', async function() {
+    if (stepState.completed.has(2) || scanning || !stepState.completed.has(1)) return;
+    scanning = true;
+    const btn = this;
+    const dot = document.getElementById('step2-dot');
+    const statusEl = document.getElementById('step2-status');
+    const fill = document.getElementById('scan-fill');
+    const isTR = getLang() === 'tr';
+
+    btn.classList.add('processing');
+    btn.textContent = isTR ? 'TARANIYOR...' : 'SCANNING...';
+    dot.classList.add('processing');
+    statusEl.textContent = isTR ? 'YEREL OLARAK \u0130\u015eLEN\u0130YOR...' : 'PROCESSING LOCALLY...';
+    statusEl.style.color = '#e78a4e';
+
+    const piiEls = document.querySelectorAll('#step2-text .pii');
+    const chips = document.querySelectorAll('#step2-chips .demo-chip');
+    const revealedTypes = new Set();
+    const totalPii = piiEls.length;
+
+    for (let i = 0; i < totalPii; i++) {
+        fill.style.width = ((i + 1) / totalPii * 100) + '%';
+        const el = piiEls[i];
+        const type = Array.from(el.classList).find(c => ['name','date','id','location'].includes(c));
+        el.classList.add('highlight');
+        if (type && !revealedTypes.has(type)) {
+            chips.forEach(ch => {
+                if (ch.classList.contains(type)) ch.classList.add('visible');
+            });
+            revealedTypes.add(type);
+        }
+        await new Promise(r => setTimeout(r, 350));
+    }
+
+    btn.classList.remove('processing');
+    btn.textContent = isTR ? 'TARA' : 'SCAN';
+    dot.classList.remove('processing');
+    statusEl.textContent = totalPii + (isTR ? ' ki\u015fisel veri bulundu' : ' PII entities found');
+    statusEl.style.color = '#6bbd6b';
+
+    loadStep3Text();
+    scanning = false;
+    setTimeout(() => completeStep(2), 600);
+});
+
+// ── Step 3: Review & Toggle ──
+function loadStep3Text() {
+    const content = getContent();
+    const el = document.getElementById('step3-text');
+    el.innerHTML = content.raw;
+    // Pre-highlight all PII
+    el.querySelectorAll('.pii').forEach(p => p.classList.add('highlight'));
+    updateStep3Count();
+}
+
+let toggleCount = 0;
+
+document.querySelectorAll('#step3-chips .demo-chip').forEach(chip => {
+    chip.addEventListener('click', function() {
+        if (!stepState.completed.has(2) && stepState.current < 3) return;
+        const cat = this.getAttribute('data-cat');
+        this.classList.toggle('toggled-off');
+        const faded = this.classList.contains('toggled-off');
+        document.querySelectorAll('#step3-text .pii.' + cat).forEach(p => {
+            p.classList.toggle('faded', faded);
+        });
+        updateStep3Count();
+        toggleCount++;
+        // Complete after 2 toggles
+        if (toggleCount >= 2 && !stepState.completed.has(3)) {
+            setTimeout(() => completeStep(3), 500);
+        }
+    });
+});
+
+function updateStep3Count() {
+    const total = document.querySelectorAll('#step3-text .pii.highlight').length;
+    const faded = document.querySelectorAll('#step3-text .pii.faded').length;
+    const active = total - faded;
+    const isTR = getLang() === 'tr';
+    document.getElementById('step3-count').textContent = active + '/' + total + (isTR ? ' KV' : ' PII');
+    document.getElementById('step3-status').textContent = active + '/' + total + (isTR ? ' ki\u015fisel veri aktif' : ' PII active');
+}
+
+// ── Step 4: Manual Redaction ──
+function loadStep4Text() {
+    const content = getContent();
+    const el = document.getElementById('step4-text');
+    el.innerHTML = content.raw;
+    el.querySelectorAll('.pii').forEach(p => p.classList.add('highlight'));
+    const isTR = getLang() === 'tr';
+    document.getElementById('step4-status').textContent = el.querySelectorAll('.pii').length + (isTR ? ' KV' : ' PII');
+}
+
+const floatBtn = document.getElementById('float-redact');
+const step4Wrapper = document.getElementById('step4-wrapper');
+const step4Text = document.getElementById('step4-text');
+let manualRedactDone = false;
+
+step4Text.addEventListener('mouseup', function(e) {
+    if (!stepState.completed.has(3) && stepState.current < 4) return;
+    if (manualRedactDone) return;
+    const sel = window.getSelection();
+    if (sel && sel.toString().trim().length > 0) {
+        const range = sel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        const wrapperRect = step4Wrapper.getBoundingClientRect();
+        floatBtn.style.display = 'block';
+        floatBtn.style.left = (rect.left - wrapperRect.left + rect.width / 2 - 30) + 'px';
+        floatBtn.style.top = (rect.top - wrapperRect.top - 28) + 'px';
+    } else {
+        floatBtn.style.display = 'none';
+    }
+});
+
+document.addEventListener('mousedown', function(e) {
+    if (e.target !== floatBtn && !floatBtn.contains(e.target)) {
+        // Don't hide immediately so that the mouseup in text can fire first
+    }
+});
+
+floatBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.toString().trim().length === 0) {
+        floatBtn.style.display = 'none';
+        return;
+    }
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.className = 'pii manual highlight';
+    try {
+        range.surroundContents(span);
+    } catch(ex) {
+        // If range crosses element boundaries, just wrap the text
+        const text = sel.toString();
+        range.deleteContents();
+        span.textContent = text;
+        range.insertNode(span);
+    }
+    sel.removeAllContent ? sel.removeAllContent() : sel.removeAllRanges();
+    floatBtn.style.display = 'none';
+    document.getElementById('chip-manual').classList.add('visible');
+
+    const isTR = getLang() === 'tr';
+    const count = step4Text.querySelectorAll('.pii').length;
+    document.getElementById('step4-status').textContent = count + (isTR ? ' KV (+1 elle)' : ' PII (+1 manual)');
+
+    if (!manualRedactDone) {
+        manualRedactDone = true;
+        loadStep5Text();
+        setTimeout(() => completeStep(4), 600);
+    }
+});
+
+// ── Step 5: Export ──
+function loadStep5Text() {
+    const content = getContent();
+    const el = document.getElementById('step5-text');
+    // Build redacted version
+    const temp = document.createElement('div');
+    temp.innerHTML = content.raw;
+    temp.querySelectorAll('.pii').forEach(p => {
+        const type = Array.from(p.classList).find(c => ['name','date','id','location'].includes(c));
+        const text = p.textContent.trim();
+        const age = p.getAttribute('data-age');
+        if (type === 'date' && age) {
+            const isTR = getLang() === 'tr';
+            const label = isTR ? 'ya\u015f' : 'age';
+            p.outerHTML = '<span class="pii age-text">' + label + ': ' + age + '</span>';
+        } else {
+            p.outerHTML = '<span class="pii redacted">' + makeBlocks(text) + '</span>';
+        }
+    });
+    el.innerHTML = temp.innerHTML;
+}
+
+let exported = false;
+document.getElementById('btn-export').addEventListener('click', function() {
+    if (!stepState.completed.has(4) && stepState.current < 5) return;
+    if (exported) return;
+    document.getElementById('export-formats').style.display = 'flex';
+    this.style.display = 'none';
+});
+
+document.querySelectorAll('.format-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (exported) return;
+        document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('selected'));
+        this.classList.add('selected');
+        document.getElementById('export-check').innerHTML = '<span class="checkmark">&#10003;</span>';
+        const isTR = getLang() === 'tr';
+        document.getElementById('step5-status').textContent = (isTR ? 'D\u0131\u015fa aktar\u0131ld\u0131: ' : 'Exported: ') + this.getAttribute('data-fmt');
+        document.getElementById('step5-status').style.color = '#6bbd6b';
+        if (!exported) {
+            exported = true;
+            setTimeout(() => completeStep(5), 600);
+        }
+    });
+});
+
+// ── Architecture Diagram Animation ──
+(function() {
+    const archDiagram = document.getElementById('arch-diagram');
+    if (!archDiagram) return;
+
+    let archAnimated = false;
+
+    function animateArchDiagram() {
+        if (archAnimated) return;
+        archAnimated = true;
+
+        const stages = archDiagram.querySelectorAll('.arch-stage');
+        const connectors = archDiagram.querySelectorAll('.arch-connector');
+        const dlFill = document.getElementById('arch-dl-fill');
+
+        // Stage 1: Download — appear + download bar animation
+        setTimeout(() => {
+            stages[0].classList.add('visible');
+            // Animate the download progress bar
+            if (dlFill) {
+                let progress = 0;
+                const dlInterval = setInterval(() => {
+                    progress += 2;
+                    dlFill.style.width = progress + '%';
+                    if (progress >= 100) {
+                        clearInterval(dlInterval);
+                    }
+                }, 30);
+            }
+        }, 200);
+
+        // Connector 1 → 2
+        setTimeout(() => {
+            connectors[0].classList.add('visible');
+        }, 1200);
+
+        // Stage 2: Disconnect
+        setTimeout(() => {
+            stages[1].classList.add('visible');
+        }, 1500);
+
+        // Connector 2 → 3
+        setTimeout(() => {
+            connectors[1].classList.add('visible');
+        }, 2200);
+
+        // Stage 3: Process Locally
+        setTimeout(() => {
+            stages[2].classList.add('visible');
+        }, 2500);
+    }
+
+    const archObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateArchDiagram();
+                archObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.3 });
+
+    archObserver.observe(archDiagram);
+})();
+
+// ── Init: unlock step 1 ──
+updateProgressBar();
+unlockStep(1);
+
+// ── Auto-scroll to first incomplete step on load ──
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const firstIncomplete = document.getElementById('step-' + stepState.current);
+        if (firstIncomplete) {
+            firstIncomplete.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 500);
+});
+</script>
+
+</body>
+</html>
