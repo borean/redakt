@@ -23,7 +23,7 @@ jobs:
             bundle-ext: dmg
 
           - platform: macos-intel
-            os: macos-13
+            os: macos-15-intel
             rust-target: x86_64-apple-darwin
             llama-archive: llama-b8196-bin-macos-x64.tar.gz
             sidecar-name: llama-server-x86_64-apple-darwin
@@ -79,15 +79,16 @@ jobs:
 
           ARCHIVE="${{ matrix.llama-archive }}"
           URL="https://github.com/ggml-org/llama.cpp/releases/download/${{ env.LLAMA_VERSION }}/${ARCHIVE}"
+          WORKDIR=$(mktemp -d)
 
           echo "Downloading: $URL"
-          curl -L --fail -o "/tmp/$ARCHIVE" "$URL"
+          curl -L --fail -o "$WORKDIR/$ARCHIVE" "$URL"
 
-          cd /tmp
+          cd "$WORKDIR"
 
-          # Extract
+          # Extract (ignore tar warnings about xattrs/ownership)
           if [[ "$ARCHIVE" == *.tar.gz ]]; then
-            tar xzf "$ARCHIVE"
+            tar xzf "$ARCHIVE" 2>&1 || echo "tar had warnings (non-fatal)"
           elif [[ "$ARCHIVE" == *.zip ]]; then
             if command -v 7z &> /dev/null; then
               7z x "$ARCHIVE" -oextracted
@@ -95,6 +96,9 @@ jobs:
               unzip -q "$ARCHIVE" -d extracted
             fi
           fi
+
+          echo "Looking for llama-server binary..."
+          find . -name "llama-server*" -type f
 
           # Find llama-server binary
           if [[ "${{ matrix.platform }}" == "windows" ]]; then
@@ -112,7 +116,8 @@ jobs:
           DEST="${GITHUB_WORKSPACE}/redakt-tauri/src-tauri/binaries/${{ matrix.sidecar-name }}"
           cp "$FOUND" "$DEST"
           chmod +x "$DEST"
-          ls -lh "$DEST"
+          echo "Installed: $DEST ($(du -h "$DEST" | cut -f1))"
+          rm -rf "$WORKDIR"
 
       # macOS: import code signing certificate from secrets
       - name: Import Apple certificate
