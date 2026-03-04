@@ -732,16 +732,12 @@ fn find_birth_date_by_context(
     None
 }
 
-/// Apply age conversion to date entities.
-/// Finds birth date using a multi-strategy cascade, then converts other dates to ages.
-pub fn apply_age_conversion(
-    entities: &mut Vec<PIIEntity>,
+/// Detect the birth date from entities and document text using a multi-strategy cascade.
+/// Returns (birth_date, entity_index) if found.
+pub fn detect_birth_date(
+    entities: &[PIIEntity],
     document_text: &str,
-    language: &str,
-) {
-    let mut birth_date: Option<NaiveDate> = None;
-    let mut birth_idx: Option<usize> = None;
-
+) -> Option<(NaiveDate, usize)> {
     // Strategy 0: Regex scan of entire document text
     if let Some(regex_birth) = find_birth_date_by_regex_scan(document_text) {
         for (idx, e) in entities.iter().enumerate() {
@@ -750,61 +746,80 @@ pub fn apply_age_conversion(
             }
             if let Some(parsed) = parse_date(&e.original) {
                 if parsed == regex_birth {
-                    birth_date = Some(regex_birth);
-                    birth_idx = Some(idx);
-                    break;
+                    return Some((regex_birth, idx));
                 }
             }
         }
     }
 
     // Strategy 1: Find by subcategory (LLM classified as date_of_birth)
-    if birth_date.is_none() {
-        for (idx, e) in entities.iter().enumerate() {
-            if let Some(ref sub) = e.subcategory {
-                let sub_lower = sub.to_lowercase();
-                if BIRTH_DATE_SUBCATS.iter().any(|s| *s == sub_lower) {
-                    if let Some(parsed) = parse_date(&e.original) {
-                        birth_date = Some(parsed);
-                        birth_idx = Some(idx);
-                        break;
-                    }
+    for (idx, e) in entities.iter().enumerate() {
+        if let Some(ref sub) = e.subcategory {
+            let sub_lower = sub.to_lowercase();
+            if BIRTH_DATE_SUBCATS.iter().any(|s| *s == sub_lower) {
+                if let Some(parsed) = parse_date(&e.original) {
+                    return Some((parsed, idx));
                 }
             }
         }
     }
 
     // Strategy 2: Find by document context
-    if birth_date.is_none() {
-        if let Some((parsed, idx)) = find_birth_date_by_context(entities, document_text) {
-            birth_date = Some(parsed);
-            birth_idx = Some(idx);
-        }
+    if let Some((parsed, idx)) = find_birth_date_by_context(entities, document_text) {
+        return Some((parsed, idx));
     }
 
     // Strategy 3: Earliest date heuristic (when 2+ dates exist)
-    if birth_date.is_none() {
-        let mut date_candidates: Vec<(NaiveDate, usize)> = Vec::new();
-        for (idx, e) in entities.iter().enumerate() {
-            if e.category != "date" {
-                continue;
-            }
-            if let Some(parsed) = parse_date(&e.original) {
-                date_candidates.push((parsed, idx));
-            }
+    let mut date_candidates: Vec<(NaiveDate, usize)> = Vec::new();
+    for (idx, e) in entities.iter().enumerate() {
+        if e.category != "date" {
+            continue;
         }
-        if date_candidates.len() >= 2 {
-            date_candidates.sort_by_key(|(d, _)| *d);
-            birth_date = Some(date_candidates[0].0);
-            birth_idx = Some(date_candidates[0].1);
+        if let Some(parsed) = parse_date(&e.original) {
+            date_candidates.push((parsed, idx));
         }
     }
+    if date_candidates.len() >= 2 {
+        date_candidates.sort_by_key(|(d, _)| *d);
+        return Some(date_candidates[0]);
+    }
 
-    // No birth date found — skip age conversion
-    let birth = match birth_date {
-        Some(d) => d,
-        None => return,
+    None
+}
+
+/// Apply age conversion to date entities.
+/// If `override_birth` is Some, uses that date instead of auto-detecting.
+pub fn apply_age_conversion(
+    entities: &mut Vec<PIIEntity>,
+    document_text: &str,
+    language: &str,
+) -> Option<String> {
+    apply_age_conversion_with_birth(entities, document_text, language, None)
+}
+
+/// Apply age conversion with an optional user-specified birth date override.
+/// Returns the birth date used (as DD.MM.YYYY string) if age conversion was applied.
+pub fn apply_age_conversion_with_birth(
+    entities: &mut Vec<PIIEntity>,
+    document_text: &str,
+    language: &str,
+    override_birth: Option<&str>,
+) -> Option<String> {
+    let (birth, birth_idx) = if let Some(date_str) = override_birth {
+        // User-specified birth date
+        let parsed = parse_date(date_str)?;
+        // Find matching entity index if any
+        let idx = entities.iter().position(|e| {
+            e.category == "date" && parse_date(&e.original) == Some(parsed)
+        });
+        (parsed, idx)
+    } else {
+        // Auto-detect
+        let (d, i) = detect_birth_date(entities, document_text)?;
+        (d, Some(i))
     };
+
+    let birth_str = birth.format("%d.%m.%Y").to_string();
 
     // Convert other dates to age-relative placeholders
     for (idx, entity) in entities.iter_mut().enumerate() {
@@ -830,4 +845,6 @@ pub fn apply_age_conversion(
             }
         }
     }
+
+    Some(birth_str)
 }

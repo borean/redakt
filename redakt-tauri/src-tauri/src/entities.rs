@@ -19,6 +19,7 @@ pub struct ScanResult {
     pub highlighted_html: String,
     pub redacted_html: String,
     pub summary: String,
+    pub detected_birth_date: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

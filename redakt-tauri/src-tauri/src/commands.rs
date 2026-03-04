@@ -36,9 +36,13 @@ pub async fn scan_document(
     let mut entities = anonymizer::detect_pii(&llm, &text, &language).await?;
 
     // Apply age conversion only when enabled (defaults to true)
-    if age_mode.unwrap_or(true) {
-        anonymizer::apply_age_conversion(&mut entities, &text, &language);
-    }
+    let detected_birth_date = if age_mode.unwrap_or(true) {
+        anonymizer::apply_age_conversion(&mut entities, &text, &language)
+    } else {
+        // Still detect birth date for display, even if not converting
+        anonymizer::detect_birth_date(&entities, &text)
+            .map(|(d, _)| d.format("%d.%m.%Y").to_string())
+    };
 
     let highlighted = redactor::render_highlighted_html(&text, &entities);
     let redacted = redactor::render_redacted_html(&text, &entities);
@@ -92,6 +96,7 @@ pub async fn scan_document(
         highlighted_html: highlighted,
         redacted_html: redacted,
         summary,
+        detected_birth_date,
     })
 }
 
@@ -133,20 +138,31 @@ pub async fn export_document(
 }
 
 /// Recalculate entities with age mode toggled (no re-scan needed)
+/// Accepts optional birth_date override (DD.MM.YYYY format)
 #[tauri::command]
 pub fn recalc_age_mode(
     text: String,
     mut entities: Vec<PIIEntity>,
     age_mode: bool,
     language: String,
+    birth_date: Option<String>,
 ) -> Result<ScanResult, String> {
     // Reset all date entity placeholders to standard [DATE_N] format
     anonymizer::reassign_placeholders(&mut entities);
 
-    // If age mode is on, apply age conversion
-    if age_mode {
-        anonymizer::apply_age_conversion(&mut entities, &text, &language);
-    }
+    // If age mode is on, apply age conversion (with optional birth date override)
+    let detected_birth_date = if age_mode {
+        anonymizer::apply_age_conversion_with_birth(
+            &mut entities,
+            &text,
+            &language,
+            birth_date.as_deref(),
+        )
+    } else {
+        // Still detect for display
+        anonymizer::detect_birth_date(&entities, &text)
+            .map(|(d, _)| d.format("%d.%m.%Y").to_string())
+    };
 
     let highlighted = redactor::render_highlighted_html(&text, &entities);
     let redacted = redactor::render_redacted_html(&text, &entities);
@@ -161,6 +177,7 @@ pub fn recalc_age_mode(
         highlighted_html: highlighted,
         redacted_html: redacted,
         summary,
+        detected_birth_date,
     })
 }
 
@@ -364,6 +381,7 @@ pub fn toggle_entity(
         highlighted_html: highlighted,
         redacted_html: redacted,
         summary,
+        detected_birth_date: None,
     })
 }
 

@@ -61,6 +61,7 @@ const translations = {
         chip_email: 'E-POSTA',
         chip_institution: 'KURUM',
         chip_age: 'YAŞ',
+        birth_label: 'DT:',
         download_wait: 'Model indiriliyor. Bu tek seferlik bir indirmedir — tamamlandığında uygulama hazır olacak.',
         download_onetime: 'Tek seferlik indirme · tamamlandığında otomatik başlar',
         about_desc: 'Yerel tıbbi belge kimlik gizleme. Klinik belgelerden kişisel verileri yerel bir LLM kullanarak tespit eder ve karartır. Hiçbir veri cihazınızdan çıkmaz.',
@@ -105,6 +106,7 @@ const translations = {
         chip_email: 'EMAIL',
         chip_institution: 'INST',
         chip_age: 'AGE',
+        birth_label: 'DOB:',
         download_wait: 'Model is still downloading. This is a one-time download — the app will be ready once it completes.',
         download_onetime: 'One-time download · auto-starts when complete',
         about_desc: 'Local medical document de-identification. Detects and redacts personal identifiable information from clinical documents using a local LLM. No data ever leaves your machine.',
@@ -165,11 +167,14 @@ async function setLanguage(lang) {
     if (state.scanned && state.entities.length > 0) {
         try {
             const ageChecked = document.getElementById('chk-age').checked;
+            const birthValue = document.getElementById('birth-input').value.trim();
+            const birthDate = (birthValue && ageChecked) ? birthValue : null;
             const result = await invoke('recalc_age_mode', {
                 text: state.originalText,
                 entities: state.entities,
                 ageMode: ageChecked,
                 language: lang,
+                birthDate,
             });
             state.entities = result.entities;
             document.getElementById('document-text').innerHTML = result.highlighted_html;
@@ -177,6 +182,8 @@ async function setLanguage(lang) {
             buildEntityTable();
             // Re-translate the summary
             setStatus('success', buildSummary());
+            // Update birth date label
+            document.getElementById('birth-label').textContent = t('birth_label');
         } catch (err) {
             console.error('Language switch recalc failed:', err);
         }
@@ -395,6 +402,9 @@ document.getElementById('btn-scan').addEventListener('click', async () => {
         document.getElementById('btn-select-all').style.display = '';
         document.getElementById('btn-select-none').style.display = '';
 
+        // Show detected birth date if available
+        updateBirthDateDisplay(result.detected_birth_date);
+
         setStatus('success', result.summary);
     } catch (err) {
         setStatus('error', err.toString());
@@ -555,22 +565,99 @@ document.getElementById('btn-select-none').addEventListener('click', () => {
 document.getElementById('chk-age').addEventListener('change', async (e) => {
     if (!state.scanned || state.entities.length === 0) return;
 
+    const birthValue = document.getElementById('birth-input').value.trim();
+    const birthDate = (birthValue && e.target.checked) ? birthValue : null;
+
     try {
         const result = await invoke('recalc_age_mode', {
             text: state.originalText,
             entities: state.entities,
             ageMode: e.target.checked,
             language: state.language,
+            birthDate,
         });
 
         state.entities = result.entities;
         document.getElementById('document-text').innerHTML = result.highlighted_html;
         document.getElementById('redacted-preview').innerHTML = result.redacted_html;
         buildEntityTable();
+
+        // Show/hide birth date display
+        updateBirthDateDisplay(result.detected_birth_date);
     } catch (err) {
         console.error('Age mode toggle failed:', err);
     }
 });
+
+// ── Birth date display + override ──
+function updateBirthDateDisplay(birthDateStr) {
+    const container = document.getElementById('birth-date-display');
+    const input = document.getElementById('birth-input');
+    const label = document.getElementById('birth-label');
+    const ageChecked = document.getElementById('chk-age').checked;
+
+    label.textContent = t('birth_label');
+
+    if (birthDateStr && ageChecked) {
+        container.style.display = 'flex';
+        input.value = birthDateStr;
+    } else if (ageChecked) {
+        // Age mode on but no birth date detected — show empty input for manual entry
+        container.style.display = 'flex';
+        input.value = '';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+// Debounce birth date input so we don't recalc on every keystroke
+let birthInputTimer = null;
+document.getElementById('birth-input').addEventListener('input', (e) => {
+    if (birthInputTimer) clearTimeout(birthInputTimer);
+    birthInputTimer = setTimeout(() => {
+        recalcWithBirthDate();
+    }, 800);
+});
+
+document.getElementById('birth-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (birthInputTimer) clearTimeout(birthInputTimer);
+        recalcWithBirthDate();
+    }
+});
+
+async function recalcWithBirthDate() {
+    if (!state.scanned || state.entities.length === 0) return;
+
+    const birthValue = document.getElementById('birth-input').value.trim();
+    const ageChecked = document.getElementById('chk-age').checked;
+
+    // Only pass birth date override if the field has a value
+    const birthDate = birthValue || null;
+
+    try {
+        const result = await invoke('recalc_age_mode', {
+            text: state.originalText,
+            entities: state.entities,
+            ageMode: ageChecked,
+            language: state.language,
+            birthDate,
+        });
+
+        state.entities = result.entities;
+        document.getElementById('document-text').innerHTML = result.highlighted_html;
+        document.getElementById('redacted-preview').innerHTML = result.redacted_html;
+        buildEntityTable();
+
+        // Update birth date display with the (possibly corrected) value
+        if (result.detected_birth_date) {
+            document.getElementById('birth-input').value = result.detected_birth_date;
+        }
+    } catch (err) {
+        console.error('Birth date recalc failed:', err);
+    }
+}
 
 // ── Refresh both panes after toggle changes ──
 async function refreshViews() {
@@ -667,6 +754,8 @@ document.getElementById('btn-clear').addEventListener('click', () => {
     document.getElementById('right-label').textContent = t('redacted_preview');
     document.getElementById('btn-export').classList.remove('ready');
     document.getElementById('age-toggle').style.display = 'none';
+    document.getElementById('birth-date-display').style.display = 'none';
+    document.getElementById('birth-input').value = '';
     document.getElementById('btn-select-all').style.display = 'none';
     document.getElementById('btn-select-none').style.display = 'none';
 
