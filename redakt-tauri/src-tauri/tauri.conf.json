@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicegui-org/nicegui/refs/heads/main/nicegui/static/tauri/tauri.conf.json",
+  "productName": "Redakt",
+  "version": "0.1.0",
+  "identifier": "com.redakt.app",
+  "build": {
+    "frontendDist": "../src",
+    "devUrl": "http://localhost:1420"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Redakt",
+        "width": 1100,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 650,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://localhost:* http://127.0.0.1:*; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/llama-server"
+    ],
+    "macOS": {
+      "signingIdentity": "Developer ID Application: Hasan Bora Ulukapi (BT5DCKAT25)"
+    }
+  }
+}

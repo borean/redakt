@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redakt</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+    <!-- Titlebar -->
+    <div id="titlebar">
+        <div class="titlebar-left">
+            <select id="lang-select">
+                <option value="en">EN</option>
+                <option value="tr">TR</option>
+            </select>
+            <button class="btn" id="config-btn">CONFIG</button>
+        </div>
+        <div class="titlebar-center">
+            <div class="title">REDAKT</div>
+            <div class="subtitle" id="subtitle">LOCAL DE-IDENTIFICATION</div>
+        </div>
+        <div class="titlebar-right">
+            <span id="file-label">NO FILE LOADED</span>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+        <button class="btn" id="open-btn">OPEN</button>
+        <button class="btn-primary" id="scan-btn" disabled>SCAN</button>
+        <select id="format-select">
+            <option value="txt">TXT</option>
+            <option value="md">Markdown</option>
+        </select>
+        <button class="btn" id="export-btn" disabled>EXPORT</button>
+        <button class="btn" id="clear-btn" disabled>CLEAR</button>
+
+        <label id="age-mode" class="hidden">
+            <input type="checkbox" id="age-checkbox"> AGE
+        </label>
+        <div id="birth-date-display" class="hidden">
+            <span id="birth-label">Birth:</span>
+            <span id="birth-value"></span>
+            <button class="btn-tiny" id="change-birth-btn">Change</button>
+        </div>
+
+        <div id="chip-container"></div>
+        <button class="btn-tiny hidden" id="select-all-btn">ALL</button>
+        <button class="btn-tiny hidden" id="select-none-btn">NONE</button>
+    </div>
+
+    <!-- Progress bar -->
+    <div id="progress-bar" class="hidden">
+        <div id="progress-fill"></div>
+    </div>
+
+    <!-- Main content -->
+    <div id="main-content">
+
+        <!-- Top: Document Text | Redacted Preview -->
+        <div id="text-panes">
+            <div class="pane" id="left-pane">
+                <div class="pane-label" id="left-label">DOCUMENT TEXT</div>
+                <div class="pane-content" id="original-view">
+                    <div class="empty-state">
+                        <div class="icon">&#x1F4C4;</div>
+                        <span>DROP FILE HERE OR CLICK OPEN</span>
+                    </div>
+                </div>
+            </div>
+            <div id="h-divider"></div>
+            <div class="pane" id="right-pane">
+                <div class="pane-label" id="right-label">REDACTED PREVIEW</div>
+                <div class="pane-content" id="redacted-view">
+                    <div class="empty-state">
+                        <span>SCAN FOR PII TO PREVIEW REDACTION</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vertical divider -->
+        <div id="v-divider"></div>
+
+        <!-- Entity table -->
+        <div id="entity-panel">
+            <div class="pane-label" id="table-label">DETECTED PII</div>
+            <div class="entity-table-wrap">
+                <table id="entity-table">
+                    <thead>
+                        <tr>
+                            <th class="col-check"></th>
+                            <th class="col-num">#</th>
+                            <th>ORIGINAL</th>
+                            <th class="col-type">TYPE</th>
+                            <th>REPLACEMENT</th>
+                            <th class="col-conf">CONF</th>
+                        </tr>
+                    </thead>
+                    <tbody id="entity-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Status bar -->
+    <div id="status-bar">
+        <div id="status-dot"></div>
+        <span id="status-text">READY</span>
+        <span class="spacer"></span>
+        <span id="local-badge">100% LOCAL</span>
+    </div>
+
+</div>
+
+<!-- Setup wizard overlay -->
+<div id="setup-overlay" class="overlay hidden">
+    <div class="modal">
+        <h2>REDAKT SETUP</h2>
+        <div id="setup-content">
+            <p>Checking for model files...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Settings overlay -->
+<div id="settings-overlay" class="overlay hidden">
+    <div class="modal">
+        <h2>CONFIG</h2>
+        <div id="settings-content"></div>
+        <button class="btn" id="settings-close-btn">CLOSE</button>
+    </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
