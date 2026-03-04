@@ -58,6 +58,7 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -615,8 +616,14 @@ html[data-theme="light"] .theme-toggle .icon-light { display: flex !important; }
 }
 
 #document-text {
-    user-select: text;
+    -webkit-user-select: text !important;
+    user-select: text !important;
     cursor: text;
+}
+
+#document-text * {
+    -webkit-user-select: text !important;
+    user-select: text !important;
 }
 
 /* ── Manual redaction floating button ── */

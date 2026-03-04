@@ -1272,17 +1272,23 @@ function updateServerUI(running, modelName) {
         const text = selection.toString().trim();
         if (!text || text.length < 2) return null;
 
+        // No originalText yet (pre-scan or empty) — accept the selection
+        if (!state.originalText) return text;
+
         // Verify text exists in originalText (critical for Rust text-based matching)
-        if (state.originalText && state.originalText.includes(text)) return text;
+        if (state.originalText.includes(text)) return text;
 
         // Try normalizing whitespace for cross-line selections
         const normalized = text.replace(/\s+/g, ' ');
-        if (state.originalText && state.originalText.includes(normalized)) return normalized;
+        if (state.originalText.includes(normalized)) return normalized;
 
-        // Pre-scan: no originalText yet, just accept the selection
-        if (!state.originalText) return text;
+        // Handle \r\n vs \n mismatches
+        const crlfNormalized = text.replace(/\r\n/g, '\n');
+        if (crlfNormalized !== text && state.originalText.includes(crlfNormalized)) return crlfNormalized;
 
-        return null;
+        // Fallback: if document has text loaded, accept the selection anyway
+        // (the Rust renderer will handle text not found gracefully)
+        return text;
     }
 
     function showRedactButton(x, y) {
