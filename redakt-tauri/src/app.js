@@ -127,6 +127,24 @@ function readyText() {
     return t('ready');
 }
 
+function buildSummary() {
+    const counts = {};
+    for (const e of state.entities) {
+        counts[e.category] = (counts[e.category] || 0) + 1;
+    }
+    const catLabel = (cat) => {
+        if (state.language === 'tr') {
+            const map = { name: 'ad', date: 'tarih', id: 'kimlik', address: 'adres', phone: 'telefon', email: 'e-posta', institution: 'kurum', age: 'yaş' };
+            return map[cat] || cat;
+        }
+        return cat;
+    };
+    const parts = Object.entries(counts).map(([k, v]) => `${v} ${catLabel(k)}`).join(', ');
+    return state.language === 'tr'
+        ? `${state.entities.length} KV tespit edildi: ${parts}`
+        : `${state.entities.length} PII entities found: ${parts}`;
+}
+
 function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
@@ -135,13 +153,34 @@ function applyTranslations() {
 }
 
 // ── Language toggle ──
-function setLanguage(lang) {
+async function setLanguage(lang) {
     state.language = lang;
     document.documentElement.lang = lang;
     document.getElementById('lang-tr').classList.toggle('active', lang === 'tr');
     document.getElementById('lang-en').classList.toggle('active', lang === 'en');
     applyTranslations();
     updateChipLabels();
+
+    // If we have scan results, re-translate age placeholders and summary
+    if (state.scanned && state.entities.length > 0) {
+        try {
+            const ageChecked = document.getElementById('chk-age').checked;
+            const result = await invoke('recalc_age_mode', {
+                text: state.originalText,
+                entities: state.entities,
+                ageMode: ageChecked,
+                language: lang,
+            });
+            state.entities = result.entities;
+            document.getElementById('document-text').innerHTML = result.highlighted_html;
+            document.getElementById('redacted-preview').innerHTML = result.redacted_html;
+            buildEntityTable();
+            // Re-translate the summary
+            setStatus('success', buildSummary());
+        } catch (err) {
+            console.error('Language switch recalc failed:', err);
+        }
+    }
 
     // Restore status text
     if (!state.scanning && !state.scanned) {
@@ -611,7 +650,7 @@ document.getElementById('btn-clear').addEventListener('click', () => {
     document.getElementById('document-text').innerHTML = `
         <div class="empty-state" id="empty-state">
             <div class="empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
                 </svg>
@@ -1029,7 +1068,7 @@ function hideDownloadProgress() {
     docEl.innerHTML = `
         <div class="empty-state" id="empty-state">
             <div class="empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
                 </svg>

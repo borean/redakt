@@ -621,19 +621,26 @@ html[data-theme="light"] .download-bar-fill {
     font-size: 0.65rem;
 }
 
-/* Empty state — absolute center within pane-content */
+/* When empty-state is shown, kill whitespace text nodes created by pre-wrap */
+.pane-content:has(.empty-state) {
+    font-size: 0;
+    white-space: normal;
+}
+
+/* Empty state — true center within pane-content */
 .empty-state {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
     gap: 1rem;
-    opacity: 0.5;
-    width: max-content;
+    font-size: 0.85rem;
 }
 
 /* Download overlay also needs absolute centering */
@@ -646,14 +653,16 @@ html[data-theme="light"] .download-bar-fill {
 }
 
 .empty-text {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
+    opacity: 0.8;
 }
 
 .empty-formats {
-    font-size: 0.6rem;
-    color: var(--text-dim);
+    font-size: 0.65rem;
+    color: var(--text-secondary);
     letter-spacing: 0.05em;
+    opacity: 0.6;
 }
 
 .placeholder-text {
