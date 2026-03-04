@@ -1,0 +1,1010 @@
+/* ═══════════════════════════════════════════════════════════
+   REDAKT — Desktop App Styles
+   Directly adapted from the manifesto demo UI.
+   Same fonts, same colors, same spacing.
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    /* Dark theme (default) — matches manifesto demo window */
+    --bg-darkest: #111111;
+    --bg-dark: #1a1a1a;
+    --bg-mid: #252525;
+    --bg-light: #303030;
+    --border: #333333;
+    --text: #d4d4d4;
+    --text-secondary: #808080;
+    --text-dim: #555555;
+    --accent: #e78a4e;
+    --accent-hover: #c47a42;
+    --success: #6bbd6b;
+    --error: #d46b6b;
+    --warning: #d4a04e;
+
+    /* PII category colors — exact match to manifesto */
+    --pii-name: #d46b6b;
+    --pii-date: #d4884e;
+    --pii-id: #d4a04e;
+    --pii-address: #6bbd6b;
+    --pii-phone: #5ba8b5;
+    --pii-email: #7aabdb;
+    --pii-institution: #9b8ec4;
+    --pii-age: #c47a8e;
+}
+
+/* Light theme */
+html[data-theme="light"] {
+    --bg-darkest: #f5f5f4;
+    --bg-dark: #fafaf9;
+    --bg-mid: #fefefe;
+    --bg-light: #e7e5e4;
+    --border: #d6d3d1;
+    --text: #1c1917;
+    --text-secondary: #57534e;
+    --text-dim: #a8a29e;
+    --accent: #b45309;
+    --accent-hover: #92400e;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+    background: var(--bg-dark);
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+}
+
+/* ── Titlebar ── */
+.titlebar {
+    height: 36px;
+    background: var(--bg-mid);
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    -webkit-app-region: drag;
+}
+
+.titlebar-left, .titlebar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 200px;
+    -webkit-app-region: no-drag;
+}
+
+.titlebar-right {
+    justify-content: flex-end;
+}
+
+.titlebar-center {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.title-text {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+}
+
+.title-subtitle {
+    font-size: 0.55rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.1em;
+}
+
+.file-label {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.titlebar-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    -webkit-app-region: no-drag;
+}
+
+.titlebar-btn:hover {
+    color: var(--text);
+    background: var(--bg-light);
+}
+
+/* ── Language toggle (from manifesto) ── */
+.lang-toggle {
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    -webkit-app-region: no-drag;
+}
+
+.lang-toggle button {
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+    border: none;
+    background: transparent;
+    padding: 2px 6px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all 0.2s ease;
+}
+
+.lang-toggle button.active {
+    background: var(--text);
+    color: var(--bg-dark);
+}
+
+.lang-toggle button:not(.active):hover {
+    color: var(--text);
+}
+
+/* ── Theme toggle (titlebar) ── */
+.theme-toggle {
+    position: relative;
+}
+
+/* Dark mode: show moon icon (click to go light) */
+html:not([data-theme="light"]) .theme-toggle .icon-dark { display: flex; }
+html:not([data-theme="light"]) .theme-toggle .icon-light { display: none; }
+/* Light mode: show sun icon (click to go dark) */
+html[data-theme="light"] .theme-toggle .icon-dark { display: none !important; }
+html[data-theme="light"] .theme-toggle .icon-light { display: flex !important; }
+
+/* ── Toolbar (from manifesto demo-toolbar) ── */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-dark);
+    flex-shrink: 0;
+}
+
+.tool-btn {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 0.35rem 0.9rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-mid);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.tool-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text);
+}
+
+.tool-btn:active {
+    transform: scale(0.97);
+}
+
+.tool-btn.small {
+    font-size: 0.55rem;
+    padding: 0.2rem 0.5rem;
+}
+
+.tool-btn.scan-btn {
+    background: var(--accent);
+    color: var(--bg-darkest);
+    border-color: var(--accent);
+    font-weight: 700;
+}
+
+.tool-btn.scan-btn:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.tool-btn.scan-btn.scanning {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    pointer-events: none;
+}
+
+.tool-btn.export-btn.ready {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.tool-select {
+    font-family: inherit;
+    font-size: 0.65rem;
+    padding: 0.35rem 0.5rem 0.35rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-mid);
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23808080' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding-right: 1.5rem;
+}
+
+.tool-select:hover {
+    border-color: var(--text-secondary);
+    color: var(--text);
+}
+
+.tool-select option {
+    background: var(--bg-mid);
+    color: var(--text);
+}
+
+.toolbar-spacer {
+    flex: 1;
+}
+
+.age-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.age-toggle input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+/* ── Category chips (from manifesto demo-chips) ── */
+.chips {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.chip {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 2px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.chip.active {
+    opacity: 1;
+}
+
+.chip:not(.active) {
+    opacity: 0.4;
+}
+
+.chip.name { background: #d46b6b55; border-color: #d46b6b88; color: #d46b6b; }
+.chip.date { background: #d4884e55; border-color: #d4884e88; color: #d4884e; }
+.chip.id { background: #d4a04e55; border-color: #d4a04e88; color: #d4a04e; }
+.chip.address { background: #6bbd6b55; border-color: #6bbd6b88; color: #6bbd6b; }
+.chip.phone { background: #5ba8b555; border-color: #5ba8b588; color: #5ba8b5; }
+.chip.email { background: #7aabdb55; border-color: #7aabdb88; color: #7aabdb; }
+.chip.institution { background: #9b8ec455; border-color: #9b8ec488; color: #9b8ec4; }
+.chip.age { background: #c47a8e55; border-color: #c47a8e88; color: #c47a8e; }
+
+/* ── Progress bar ── */
+.progress-bar {
+    height: 3px;
+    background: transparent;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar.active {
+    background: var(--bg-light);
+}
+
+.progress-bar.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    background: var(--accent);
+    animation: progress-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}
+
+/* Determinate progress (for downloads) */
+.progress-bar.determinate {
+    background: var(--bg-light);
+}
+
+.progress-bar.determinate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--progress, 0%);
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s ease;
+    animation: none;
+}
+
+/* ── Download progress overlay ── */
+.download-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 2rem;
+}
+
+.download-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.download-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+}
+
+.download-model-name {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+}
+
+.download-percent {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+}
+
+.download-bar-wrap {
+    width: 320px;
+    height: 6px;
+    background: var(--bg-light);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.download-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.download-stats {
+    display: flex;
+    gap: 2rem;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+}
+
+.download-stats span {
+    white-space: nowrap;
+}
+
+.download-note {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    margin-top: 0.5rem;
+    opacity: 0.7;
+}
+
+/* ── Toast notification ── */
+.toast {
+    position: fixed;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--bg-mid);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.7rem;
+    color: var(--text);
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    max-width: 440px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+
+.toast-message {
+    margin-bottom: 0;
+}
+
+.toast-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
+}
+
+.toast-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--bg-light);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.toast-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.toast-pct {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    min-width: 3em;
+    text-align: right;
+}
+
+/* ── Main content area ── */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Split panes (from manifesto demo-panes) ── */
+.panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Single-pane mode: empty state spans full width */
+.panes.single-pane {
+    grid-template-columns: 1fr;
+}
+
+.panes.single-pane > .pane:last-child {
+    display: none;
+}
+
+.panes.single-pane > .pane:first-child > .pane-label {
+    display: none;
+}
+
+.pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pane + .pane {
+    border-left: 2px solid var(--bg-mid);
+}
+
+.pane-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    padding: 0.5rem 1.25rem 0;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.pane-content {
+    flex: 1;
+    padding: 0.75rem 1.25rem 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-size: 0.72rem;
+    line-height: 1.85;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    position: relative;
+}
+
+/* Scrollbar styling */
+.pane-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pane-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pane-content::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.pane-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-dim);
+}
+
+/* PII highlight styles (from manifesto) */
+.pii {
+    transition: all 0.4s ease;
+    border-radius: 2px;
+    padding: 0 2px;
+}
+
+.pii.highlight {
+    font-weight: 600;
+}
+
+.pii.highlight.name { background: #d46b6b22; color: #d46b6b; border: 1px solid #d46b6b66; }
+.pii.highlight.date { background: #d4884e22; color: #d4884e; border: 1px solid #d4884e66; }
+.pii.highlight.id { background: #d4a04e22; color: #d4a04e; border: 1px solid #d4a04e66; }
+.pii.highlight.address { background: #6bbd6b22; color: #6bbd6b; border: 1px solid #6bbd6b66; }
+.pii.highlight.phone { background: #5ba8b522; color: #5ba8b5; border: 1px solid #5ba8b566; }
+.pii.highlight.email { background: #7aabdb22; color: #7aabdb; border: 1px solid #7aabdb66; }
+.pii.highlight.institution { background: #9b8ec422; color: #9b8ec4; border: 1px solid #9b8ec466; }
+.pii.highlight.age { background: #c47a8e22; color: #c47a8e; border: 1px solid #c47a8e66; }
+
+.pii.redacted {
+    background: #808080;
+    color: #808080;
+    border-radius: 1px;
+    letter-spacing: -0.5px;
+    user-select: none;
+    font-size: 0.65rem;
+}
+
+/* Empty state — absolute center within pane-content */
+.empty-state {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+    opacity: 0.5;
+    width: max-content;
+}
+
+/* Download overlay also needs absolute centering */
+.download-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max-content;
+}
+
+.empty-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.empty-formats {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+}
+
+.placeholder-text {
+    color: var(--text-dim);
+    font-size: 0.7rem;
+}
+
+/* ── Entity panel ── */
+.entity-panel {
+    border-top: 1px solid var(--border);
+    max-height: 200px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.entity-table-wrap {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.entity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.65rem;
+}
+
+.entity-table th {
+    background: var(--bg-mid);
+    color: var(--text-secondary);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.75rem;
+    text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 1px solid var(--border);
+}
+
+.entity-table td {
+    padding: 0.35rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+}
+
+.entity-table tr:hover td {
+    background: var(--bg-mid);
+}
+
+.entity-table input[type="checkbox"] {
+    accent-color: var(--accent);
+}
+
+.entity-type {
+    display: inline-block;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    border-radius: 2px;
+}
+
+/* ── Status bar (from manifesto demo-status) ── */
+.status-bar {
+    height: 28px;
+    padding: 0 1rem;
+    background: var(--bg-darkest);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    transition: background 0.3s ease;
+}
+
+.status-dot.processing {
+    background: var(--accent);
+    animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.status-dot.error {
+    background: var(--error);
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+.status-text {
+    font-size: 0.55rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    transition: color 0.3s ease;
+}
+
+.local-badge {
+    margin-left: auto;
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: var(--success);
+    letter-spacing: 0.1em;
+    border: 1px solid #6bbd6b44;
+    border-radius: 2px;
+    padding: 1px 6px;
+}
+
+/* ── Dialog / Settings overlay ── */
+.dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.dialog {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 420px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+}
+
+.dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text);
+}
+
+.dialog-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.dialog-close:hover {
+    color: var(--text);
+}
+
+.dialog-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.setting-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.setting-select {
+    font-family: inherit;
+    font-size: 0.7rem;
+    padding: 0.5rem 0.75rem 0.5rem 0.75rem;
+    background: var(--bg-mid);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23808080' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    padding-right: 2rem;
+}
+
+.setting-select:hover {
+    border-color: var(--text-secondary);
+}
+
+.setting-select option {
+    background: var(--bg-mid);
+    color: var(--text);
+}
+
+.setting-select:focus {
+    border-color: var(--accent);
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.setting-value {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+/* ── Model info (settings) ── */
+.model-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-mid);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.model-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.02em;
+}
+
+.model-details {
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+}
+
+.model-dl-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+}
+
+.model-dl-bar-wrap {
+    height: 4px;
+    background: var(--bg-light);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.model-dl-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.model-dl-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Settings divider ── */
+.setting-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.25rem 0;
+}
+
+/* ── About section ── */
+.about-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.about-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+}
+
+.about-version {
+    font-size: 0.6rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+}
+
+.about-desc {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.about-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+}
+
+/* ── Drag-and-drop overlay ── */
+.drop-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(231, 138, 78, 0.08);
+    border: 2px dashed var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    pointer-events: none;
+}
+
+.drop-overlay span {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+    .panes {
+        grid-template-columns: 1fr;
+    }
+
+    .pane + .pane {
+        border-left: none;
+        border-top: 2px solid var(--bg-mid);
+    }
+
+    .chips {
+        display: none;
+    }
+}
