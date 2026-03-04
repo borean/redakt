@@ -162,7 +162,7 @@ pub async fn download_model_by_id(app: AppHandle, model_id: &str) -> Result<Stri
     };
 
     let client = reqwest::Client::builder()
-        .user_agent("Redakt/0.2")
+        .user_agent("Redakt/0.3.1")
         .build()
         .map_err(|e| format!("HTTP client error: {}", e))?;
 
