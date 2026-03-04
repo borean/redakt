@@ -24,6 +24,7 @@ jobs:
             llama-archive: llama-b8196-bin-macos-arm64.tar.gz
             sidecar-name: llama-server-aarch64-apple-darwin
             bundle-ext: dmg
+            extra-args: ""
 
           - platform: macos-intel
             os: macos-15-intel
@@ -31,6 +32,7 @@ jobs:
             llama-archive: llama-b8196-bin-macos-x64.tar.gz
             sidecar-name: llama-server-x86_64-apple-darwin
             bundle-ext: dmg
+            extra-args: ""
 
           - platform: windows
             os: windows-latest
@@ -38,6 +40,7 @@ jobs:
             llama-archive: llama-b8196-bin-win-cpu-x64.zip
             sidecar-name: llama-server-x86_64-pc-windows-msvc.exe
             bundle-ext: nsis
+            extra-args: ""
 
           - platform: linux
             os: ubuntu-22.04
@@ -45,6 +48,7 @@ jobs:
             llama-archive: llama-b8196-bin-ubuntu-x64.tar.gz
             sidecar-name: llama-server-x86_64-unknown-linux-gnu
             bundle-ext: deb
+            extra-args: "--bundles deb rpm"
 
     runs-on: ${{ matrix.os }}
 
@@ -177,7 +181,7 @@ jobs:
           APPIMAGE_EXTRACT_AND_RUN: 1
         with:
           projectPath: redakt-tauri
-          args: --target ${{ matrix.rust-target }}
+          args: --target ${{ matrix.rust-target }} ${{ matrix.extra-args }}
           tagName: ${{ github.ref_name }}
           releaseName: "Redakt ${{ github.ref_name }}"
           releaseBody: "See the assets below to download and install."
