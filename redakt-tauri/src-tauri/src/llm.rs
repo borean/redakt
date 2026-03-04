@@ -78,28 +78,51 @@ impl LlmState {
         models
     }
 
-    /// Find llama-server binary
+    /// Find llama-server binary.
+    /// Priority: 1) Bundled sidecar (next to executable), 2) PATH, 3) Known system paths
     pub fn find_server() -> Option<PathBuf> {
-        let candidates = [
-            // Homebrew (macOS ARM)
-            "/opt/homebrew/bin/llama-server",
-            // Homebrew (macOS Intel)
-            "/usr/local/bin/llama-server",
-            // Snap (Linux)
-            "/snap/bin/llama-server",
-            // Common PATH locations
-            "/usr/bin/llama-server",
-        ];
+        // 1. Check for bundled sidecar (production builds)
+        //    Tauri externalBin places the sidecar next to the main executable:
+        //    macOS: Redakt.app/Contents/MacOS/llama-server
+        //    Windows: Redakt/llama-server.exe
+        //    Linux: alongside the binary
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                let sidecar_name = if cfg!(target_os = "windows") {
+                    "llama-server.exe"
+                } else {
+                    "llama-server"
+                };
+                let sidecar_path = exe_dir.join(sidecar_name);
+                if sidecar_path.exists() {
+                    return Some(sidecar_path);
+                }
+            }
+        }
 
-        // Check PATH first
-        if let Ok(output) = Command::new("which").arg("llama-server").output() {
+        // 2. Check PATH (development mode — `cargo tauri dev`)
+        let which_cmd = if cfg!(target_os = "windows") { "where" } else { "which" };
+        if let Ok(output) = Command::new(which_cmd).arg("llama-server").output() {
             if output.status.success() {
-                let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                let path = String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
                 if !path.is_empty() {
                     return Some(PathBuf::from(path));
                 }
             }
         }
+
+        // 3. Known system paths (fallback for development)
+        let candidates = [
+            "/opt/homebrew/bin/llama-server",
+            "/usr/local/bin/llama-server",
+            "/snap/bin/llama-server",
+            "/usr/bin/llama-server",
+        ];
 
         for candidate in &candidates {
             let path = PathBuf::from(candidate);

@@ -38,3 +38,9 @@ models/
 
 # llama.cpp server binary (platform-specific, not shipped in repo)
 bin/
+
+# Tauri sidecar binaries (downloaded at build time, 25-90 MB each)
+redakt-tauri/src-tauri/binaries/
+
+# Tauri build output
+redakt-tauri/src-tauri/target/

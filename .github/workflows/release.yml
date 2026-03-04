@@ -1,0 +1,175 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  LLAMA_VERSION: b8196
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-arm
+            os: macos-latest
+            rust-target: aarch64-apple-darwin
+            llama-archive: llama-b8196-bin-macos-arm64.tar.gz
+            sidecar-name: llama-server-aarch64-apple-darwin
+            bundle-ext: dmg
+
+          - platform: macos-intel
+            os: macos-13
+            rust-target: x86_64-apple-darwin
+            llama-archive: llama-b8196-bin-macos-x64.tar.gz
+            sidecar-name: llama-server-x86_64-apple-darwin
+            bundle-ext: dmg
+
+          - platform: windows
+            os: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+            llama-archive: llama-b8196-bin-win-cpu-x64.zip
+            sidecar-name: llama-server-x86_64-pc-windows-msvc.exe
+            bundle-ext: nsis
+
+          - platform: linux
+            os: ubuntu-22.04
+            rust-target: x86_64-unknown-linux-gnu
+            llama-archive: llama-b8196-bin-ubuntu-x64.tar.gz
+            sidecar-name: llama-server-x86_64-unknown-linux-gnu
+            bundle-ext: deb
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: redakt-tauri/src-tauri
+
+      # Linux: install WebKit and other Tauri dependencies
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev
+
+      # Download llama-server sidecar binary
+      - name: Download llama-server sidecar
+        shell: bash
+        run: |
+          mkdir -p redakt-tauri/src-tauri/binaries
+
+          ARCHIVE="${{ matrix.llama-archive }}"
+          URL="https://github.com/ggml-org/llama.cpp/releases/download/${{ env.LLAMA_VERSION }}/${ARCHIVE}"
+
+          echo "Downloading: $URL"
+          curl -L --fail -o "/tmp/$ARCHIVE" "$URL"
+
+          cd /tmp
+
+          # Extract
+          if [[ "$ARCHIVE" == *.tar.gz ]]; then
+            tar xzf "$ARCHIVE"
+          elif [[ "$ARCHIVE" == *.zip ]]; then
+            if command -v 7z &> /dev/null; then
+              7z x "$ARCHIVE" -oextracted
+            else
+              unzip -q "$ARCHIVE" -d extracted
+            fi
+          fi
+
+          # Find llama-server binary
+          if [[ "${{ matrix.platform }}" == "windows" ]]; then
+            FOUND=$(find . -name "llama-server.exe" -type f | head -1)
+          else
+            FOUND=$(find . -name "llama-server" -not -name "*.exe" -type f | head -1)
+          fi
+
+          if [ -z "$FOUND" ]; then
+            echo "ERROR: llama-server not found in archive"
+            find . -type f | head -30
+            exit 1
+          fi
+
+          DEST="${GITHUB_WORKSPACE}/redakt-tauri/src-tauri/binaries/${{ matrix.sidecar-name }}"
+          cp "$FOUND" "$DEST"
+          chmod +x "$DEST"
+          ls -lh "$DEST"
+
+      # macOS: import code signing certificate from secrets
+      - name: Import Apple certificate
+        if: startsWith(matrix.platform, 'macos')
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # Skip if secrets are not set (e.g., forks)
+          if [ -z "${APPLE_CERTIFICATE:-}" ]; then
+            echo "No signing certificate found, skipping"
+            exit 0
+          fi
+
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      # macOS: codesign the sidecar binary before Tauri bundles it
+      - name: Codesign sidecar (macOS)
+        if: startsWith(matrix.platform, 'macos') && env.APPLE_CERTIFICATE != ''
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ -n "${APPLE_CERTIFICATE:-}" ]; then
+            codesign --force --options runtime \
+              --sign "Developer ID Application: Hasan Bora Ulukapi (BT5DCKAT25)" \
+              "redakt-tauri/src-tauri/binaries/${{ matrix.sidecar-name }}"
+          fi
+
+      # Build Tauri app
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS signing + notarization
+          APPLE_SIGNING_IDENTITY: ${{ startsWith(matrix.platform, 'macos') && 'Developer ID Application: Hasan Bora Ulukapi (BT5DCKAT25)' || '' }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: BT5DCKAT25
+        with:
+          projectPath: redakt-tauri
+          args: --target ${{ matrix.rust-target }}
+          tagName: ${{ github.ref_name }}
+          releaseName: "Redakt ${{ github.ref_name }}"
+          releaseBody: "See the assets below to download and install."
+          releaseDraft: true
+          prerelease: false
