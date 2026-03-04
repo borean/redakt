@@ -1,6 +1,6 @@
 [package]
 name = "redakt"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 description = "Local medical document de-identification"
 
