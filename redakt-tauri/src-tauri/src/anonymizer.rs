@@ -163,6 +163,7 @@ fn convert_llm_entities(ents: Vec<LlmEntity>) -> Vec<PIIEntity> {
                 enabled: true,
                 start: None,
                 end: None,
+                manual: None,
             })
         })
         .collect()
@@ -319,6 +320,7 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
                         enabled: true,
                         start: None,
                         end: None,
+                        manual: None,
                     });
                 }
             }
@@ -370,6 +372,7 @@ fn regex_supplement(text: &str, _language: &str) -> Vec<PIIEntity> {
             enabled: true,
             start: Some(m.start()),
             end: Some(m.end()),
+            manual: None,
         });
     }
 
