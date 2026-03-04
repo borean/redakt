@@ -161,7 +161,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # macOS signing + notarization
-          APPLE_SIGNING_IDENTITY: ${{ startsWith(matrix.platform, 'macos') && 'Developer ID Application: Hasan Bora Ulukapi (BT5DCKAT25)' || '' }}
+          APPLE_SIGNING_IDENTITY: "${{ startsWith(matrix.platform, 'macos') && 'Developer ID Application: Hasan Bora Ulukapi (BT5DCKAT25)' || '' }}"
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: BT5DCKAT25
