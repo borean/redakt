@@ -1,7 +1,9 @@
 use crate::entities::{normalize_category, PIIEntity};
 use crate::llm::LlmState;
+use chrono::{Datelike, NaiveDate};
 use regex::Regex;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 struct LlmPIIResponse {
@@ -294,9 +296,9 @@ fn regex_supplement(text: &str, _language: &str) -> Vec<PIIEntity> {
 
 /// Assign unique placeholders like [AD_1], [TARİH_2]
 fn assign_placeholders(entities: &mut Vec<PIIEntity>) {
-    let mut counters = std::collections::HashMap::new();
+    let mut counters = HashMap::new();
 
-    let label_map = std::collections::HashMap::from([
+    let label_map = HashMap::from([
         ("name", "NAME"),
         ("date", "DATE"),
         ("id", "ID"),
@@ -315,8 +317,425 @@ fn assign_placeholders(entities: &mut Vec<PIIEntity>) {
             .entry(entity.category.clone())
             .or_insert(0u32);
         *count += 1;
-        entity.placeholder = format!("[{}_{}", label, count);
-        // Fix: proper bracket closing
         entity.placeholder = format!("[{}_{}]", label, count);
+    }
+}
+
+// ── Age conversion system ────────────────────────────────────────────
+
+/// Turkish month name → month number
+fn turkish_month(s: &str) -> Option<u32> {
+    match s {
+        "ocak" => Some(1),
+        "şubat" | "subat" => Some(2),
+        "mart" => Some(3),
+        "nisan" => Some(4),
+        "mayıs" | "mayis" => Some(5),
+        "haziran" => Some(6),
+        "temmuz" => Some(7),
+        "ağustos" | "agustos" => Some(8),
+        "eylül" | "eylul" => Some(9),
+        "ekim" => Some(10),
+        "kasım" | "kasim" => Some(11),
+        "aralık" | "aralik" => Some(12),
+        _ => None,
+    }
+}
+
+/// English month name → month number
+fn english_month(s: &str) -> Option<u32> {
+    match s {
+        "january" | "jan" => Some(1),
+        "february" | "feb" => Some(2),
+        "march" | "mar" => Some(3),
+        "april" | "apr" => Some(4),
+        "may" => Some(5),
+        "june" | "jun" => Some(6),
+        "july" | "jul" => Some(7),
+        "august" | "aug" => Some(8),
+        "september" | "sep" => Some(9),
+        "october" | "oct" => Some(10),
+        "november" | "nov" => Some(11),
+        "december" | "dec" => Some(12),
+        _ => None,
+    }
+}
+
+fn any_month(s: &str) -> Option<u32> {
+    turkish_month(s).or_else(|| english_month(s))
+}
+
+fn expand_year(y: i32) -> i32 {
+    if y < 50 { y + 2000 } else if y < 100 { y + 1900 } else { y }
+}
+
+/// Parse date text into NaiveDate (ports Python _parse_date)
+fn parse_date(text: &str) -> Option<NaiveDate> {
+    let text = text.trim().replace('\u{00a0}', " ");
+
+    // DD.MM.YYYY or DD/MM/YYYY or DD-MM-YYYY
+    let re1 = Regex::new(r"^(\d{1,2})[./\-](\d{1,2})[./\-](\d{2,4})\b").unwrap();
+    if let Some(caps) = re1.captures(&text) {
+        let d: u32 = caps[1].parse().ok()?;
+        let m: u32 = caps[2].parse().ok()?;
+        let y: i32 = caps[3].parse().ok()?;
+        if let Some(date) = NaiveDate::from_ymd_opt(expand_year(y), m, d) {
+            return Some(date);
+        }
+    }
+
+    // YYYY-MM-DD (ISO)
+    let re2 = Regex::new(r"^(\d{4})-(\d{1,2})-(\d{1,2})\b").unwrap();
+    if let Some(caps) = re2.captures(&text) {
+        let y: i32 = caps[1].parse().ok()?;
+        let m: u32 = caps[2].parse().ok()?;
+        let d: u32 = caps[3].parse().ok()?;
+        if let Some(date) = NaiveDate::from_ymd_opt(y, m, d) {
+            return Some(date);
+        }
+    }
+
+    // YYYY/MM/DD
+    let re3 = Regex::new(r"^(\d{4})/(\d{1,2})/(\d{1,2})\b").unwrap();
+    if let Some(caps) = re3.captures(&text) {
+        let y: i32 = caps[1].parse().ok()?;
+        let m: u32 = caps[2].parse().ok()?;
+        let d: u32 = caps[3].parse().ok()?;
+        if let Some(date) = NaiveDate::from_ymd_opt(y, m, d) {
+            return Some(date);
+        }
+    }
+
+    // DD Month YYYY (Turkish or English)
+    let re4 = Regex::new(r"(?i)^(\d{1,2})[\s.\-]+([a-zA-ZçğıöşüÇĞİÖŞÜ]+)[\s.\-]+(\d{4})\b").unwrap();
+    if let Some(caps) = re4.captures(&text) {
+        let d: u32 = caps[1].parse().ok()?;
+        let month_str = caps[2].to_lowercase();
+        let y: i32 = caps[3].parse().ok()?;
+        if let Some(m) = any_month(&month_str) {
+            if let Some(date) = NaiveDate::from_ymd_opt(y, m, d) {
+                return Some(date);
+            }
+        }
+    }
+
+    // Month DD, YYYY (English: "March 15, 2012")
+    let re5 = Regex::new(r"(?i)^([a-zA-ZçğıöşüÇĞİÖŞÜ]+)[\s.\-]+(\d{1,2}),?\s*(\d{4})\b").unwrap();
+    if let Some(caps) = re5.captures(&text) {
+        let month_str = caps[1].to_lowercase();
+        let d: u32 = caps[2].parse().ok()?;
+        let y: i32 = caps[3].parse().ok()?;
+        if let Some(m) = any_month(&month_str) {
+            if let Some(date) = NaiveDate::from_ymd_opt(y, m, d) {
+                return Some(date);
+            }
+        }
+    }
+
+    // Month YYYY ("Ekim 2019", "Mar 2012") — day defaults to 1
+    let re6 = Regex::new(r"(?i)^([a-zA-ZçğıöşüÇĞİÖŞÜ]+)[\s.\-]+(\d{4})\b").unwrap();
+    if let Some(caps) = re6.captures(&text) {
+        let month_str = caps[1].to_lowercase();
+        let y: i32 = caps[2].parse().ok()?;
+        if let Some(m) = any_month(&month_str) {
+            if let Some(date) = NaiveDate::from_ymd_opt(y, m, 1) {
+                return Some(date);
+            }
+        }
+    }
+
+    // YYYY Month ("2019 Ekim")
+    let re7 = Regex::new(r"(?i)^(\d{4})[\s.\-]+([a-zA-ZçğıöşüÇĞİÖŞÜ]+)\b").unwrap();
+    if let Some(caps) = re7.captures(&text) {
+        let y: i32 = caps[1].parse().ok()?;
+        let month_str = caps[2].to_lowercase();
+        if let Some(m) = any_month(&month_str) {
+            if let Some(date) = NaiveDate::from_ymd_opt(y, m, 1) {
+                return Some(date);
+            }
+        }
+    }
+
+    // MM/YYYY or MM.YYYY
+    let re8 = Regex::new(r"^(\d{1,2})[./](\d{4})\b").unwrap();
+    if let Some(caps) = re8.captures(&text) {
+        let m: u32 = caps[1].parse().ok()?;
+        let y: i32 = caps[2].parse().ok()?;
+        if (1..=12).contains(&m) {
+            if let Some(date) = NaiveDate::from_ymd_opt(y, m, 1) {
+                return Some(date);
+            }
+        }
+    }
+
+    // Standalone 4-digit year
+    let re9 = Regex::new(r"^(\d{4})$").unwrap();
+    if let Some(caps) = re9.captures(text.trim()) {
+        let y: i32 = caps[1].parse().ok()?;
+        if (1900..=2100).contains(&y) {
+            return NaiveDate::from_ymd_opt(y, 1, 1);
+        }
+    }
+
+    // Fallback: search for a date anywhere in the text
+    let re_fb1 = Regex::new(r"(\d{1,2})[./\-](\d{1,2})[./\-](\d{2,4})").unwrap();
+    if let Some(caps) = re_fb1.captures(&text) {
+        let d: u32 = caps[1].parse().ok()?;
+        let m: u32 = caps[2].parse().ok()?;
+        let y: i32 = caps[3].parse().ok()?;
+        if let Some(date) = NaiveDate::from_ymd_opt(expand_year(y), m, d) {
+            return Some(date);
+        }
+    }
+
+    let re_fb2 = Regex::new(r"(\d{4})-(\d{1,2})-(\d{1,2})").unwrap();
+    if let Some(caps) = re_fb2.captures(&text) {
+        let y: i32 = caps[1].parse().ok()?;
+        let m: u32 = caps[2].parse().ok()?;
+        let d: u32 = caps[3].parse().ok()?;
+        if let Some(date) = NaiveDate::from_ymd_opt(y, m, d) {
+            return Some(date);
+        }
+    }
+
+    // Fallback: standalone year anywhere in text (e.g. "menarş 2022")
+    let re_fb3 = Regex::new(r"\b(\d{4})\b").unwrap();
+    if let Some(caps) = re_fb3.captures(&text) {
+        let y: i32 = caps[1].parse().ok()?;
+        if (1900..=2100).contains(&y) {
+            return NaiveDate::from_ymd_opt(y, 1, 1);
+        }
+    }
+
+    None
+}
+
+/// Calculate (years, months) difference between birth and event date
+fn calc_age_diff(birth: NaiveDate, event: NaiveDate) -> (i32, i32) {
+    let mut years = event.year() - birth.year();
+    let mut months = event.month() as i32 - birth.month() as i32;
+    if event.day() < birth.day() {
+        months -= 1;
+    }
+    if months < 0 {
+        years -= 1;
+        months += 12;
+    }
+    (years.max(0), months.max(0))
+}
+
+fn is_plausible_birth_date(d: NaiveDate) -> bool {
+    let today = chrono::Local::now().date_naive();
+    let age = today.year() - d.year() - if (today.month(), today.day()) < (d.month(), d.day()) { 1 } else { 0 };
+    (0..=120).contains(&age)
+}
+
+/// Birth date subcategories the LLM might assign
+const BIRTH_DATE_SUBCATS: &[&str] = &[
+    "birth_date", "date_of_birth", "dob", "dogum_tarihi", "doğum_tarihi", "dogum", "doğum",
+];
+
+/// Context patterns BEFORE a date that indicate birth date
+const BIRTH_CONTEXT_BEFORE: &[&str] = &[
+    "doğum tarihi", "dogum tarihi", "doğum tar.", "d.tarihi", "dtarihi", "d. tarihi", "d tarihi",
+    "doğum:", "dogum:", "doğ.tar.", "doğ.tar:", "doğ tar",
+    "d.t.", "d.t:", "dt:", "dt.",
+    "yaş:", "yas:", "yaşı:", "yasi:",
+    "doğ:", "dog:",
+    "date of birth", "birth date", "birthdate", "born on", "born:",
+    "dob:", "dob ", "dob.", "d.o.b.", "d.o.b:",
+    "doğum", "dogum",
+];
+
+/// Context patterns AFTER a date that indicate birth date
+const BIRTH_CONTEXT_AFTER: &[&str] = &[
+    "doğumlu", "dogumlu", "doğ.", "doğumludur", "dogumludur",
+    "born", "d.t.", "doğum tarihli", "dogum tarihli",
+];
+
+/// Strategy 0: Regex scan the document text for explicit birth date references
+fn find_birth_date_by_regex_scan(document_text: &str) -> Option<NaiveDate> {
+    if document_text.is_empty() {
+        return None;
+    }
+
+    let date_num = r"(\d{1,2}[./\-]\d{1,2}[./\-]\d{2,4})";
+    let date_iso = r"(\d{4}-\d{1,2}-\d{1,2})";
+    let date_named = r"(\d{1,2}\s+\w+\s+\d{4})";
+    let opt_paren = r"(?:\s*\([^)]*\))?";
+
+    let raw_patterns = vec![
+        // Turkish
+        format!(r"(?i)do[gğ]um\s*tarihi{}\s*[:=]?\s*{}", opt_paren, date_num),
+        format!(r"(?i)do[gğ]um\s*tarihi{}\s*[:=]?\s*{}", opt_paren, date_iso),
+        format!(r"(?i)do[gğ]um\s*tarihi{}\s*[:=]?\s*{}", opt_paren, date_named),
+        format!(r"(?i)d\.?\s*tarihi{}\s*[:=]?\s*{}", opt_paren, date_num),
+        format!(r"(?i)d\.?\s*tarihi{}\s*[:=]?\s*{}", opt_paren, date_iso),
+        format!(r"(?i)d\.?\s*t\.?\s*[:=]\s*{}", date_num),
+        format!(r"(?i)do[gğ]umlu\s*[:=]?\s*{}", date_num),
+        format!(r"(?i){}\s*do[gğ]umlu", date_num),
+        format!(r"(?i)do[gğ]\.?\s*tar\.?\s*[:=]?\s*{}", date_num),
+        // English
+        format!(r"(?i)(?:date\s*of\s*birth|dob|birth\s*date){}\s*[:=]?\s*{}", opt_paren, date_num),
+        format!(r"(?i)(?:date\s*of\s*birth|dob|birth\s*date){}\s*[:=]?\s*{}", opt_paren, date_iso),
+        format!(r"(?i)born\s+(?:on\s+)?{}", date_num),
+        format!(r"(?i)d\.o\.b\.?\s*[:=]?\s*{}", date_num),
+    ];
+
+    for pat in &raw_patterns {
+        if let Ok(re) = Regex::new(pat) {
+            if let Some(caps) = re.captures(document_text) {
+                if let Some(date_str) = caps.get(1) {
+                    if let Some(parsed) = parse_date(date_str.as_str()) {
+                        if is_plausible_birth_date(parsed) {
+                            return Some(parsed);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Strategy 2: Find birth date by scanning document context around date entities
+fn find_birth_date_by_context(
+    entities: &[PIIEntity],
+    document_text: &str,
+) -> Option<(NaiveDate, usize)> {
+    if document_text.is_empty() {
+        return None;
+    }
+
+    let text_lower = document_text.to_lowercase();
+
+    for (idx, e) in entities.iter().enumerate() {
+        if e.category != "date" {
+            continue;
+        }
+        let orig_lower = e.original.to_lowercase();
+        if let Some(pos) = text_lower.find(&orig_lower) {
+            // Check 120 chars BEFORE
+            let context_start = pos.saturating_sub(120);
+            let context_before = &text_lower[context_start..pos];
+            for pattern in BIRTH_CONTEXT_BEFORE {
+                if context_before.contains(pattern) {
+                    if let Some(parsed) = parse_date(&e.original) {
+                        return Some((parsed, idx));
+                    }
+                }
+            }
+
+            // Check 40 chars AFTER
+            let after_start = pos + orig_lower.len();
+            let after_end = (after_start + 40).min(text_lower.len());
+            let context_after = &text_lower[after_start..after_end];
+            for pattern in BIRTH_CONTEXT_AFTER {
+                if context_after.contains(pattern) {
+                    if let Some(parsed) = parse_date(&e.original) {
+                        return Some((parsed, idx));
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Apply age conversion to date entities.
+/// Finds birth date using a multi-strategy cascade, then converts other dates to ages.
+pub fn apply_age_conversion(
+    entities: &mut Vec<PIIEntity>,
+    document_text: &str,
+    language: &str,
+) {
+    let mut birth_date: Option<NaiveDate> = None;
+    let mut birth_idx: Option<usize> = None;
+
+    // Strategy 0: Regex scan of entire document text
+    if let Some(regex_birth) = find_birth_date_by_regex_scan(document_text) {
+        for (idx, e) in entities.iter().enumerate() {
+            if e.category != "date" {
+                continue;
+            }
+            if let Some(parsed) = parse_date(&e.original) {
+                if parsed == regex_birth {
+                    birth_date = Some(regex_birth);
+                    birth_idx = Some(idx);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Strategy 1: Find by subcategory (LLM classified as date_of_birth)
+    if birth_date.is_none() {
+        for (idx, e) in entities.iter().enumerate() {
+            if let Some(ref sub) = e.subcategory {
+                let sub_lower = sub.to_lowercase();
+                if BIRTH_DATE_SUBCATS.iter().any(|s| *s == sub_lower) {
+                    if let Some(parsed) = parse_date(&e.original) {
+                        birth_date = Some(parsed);
+                        birth_idx = Some(idx);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Strategy 2: Find by document context
+    if birth_date.is_none() {
+        if let Some((parsed, idx)) = find_birth_date_by_context(entities, document_text) {
+            birth_date = Some(parsed);
+            birth_idx = Some(idx);
+        }
+    }
+
+    // Strategy 3: Earliest date heuristic (when 2+ dates exist)
+    if birth_date.is_none() {
+        let mut date_candidates: Vec<(NaiveDate, usize)> = Vec::new();
+        for (idx, e) in entities.iter().enumerate() {
+            if e.category != "date" {
+                continue;
+            }
+            if let Some(parsed) = parse_date(&e.original) {
+                date_candidates.push((parsed, idx));
+            }
+        }
+        if date_candidates.len() >= 2 {
+            date_candidates.sort_by_key(|(d, _)| *d);
+            birth_date = Some(date_candidates[0].0);
+            birth_idx = Some(date_candidates[0].1);
+        }
+    }
+
+    // No birth date found — skip age conversion
+    let birth = match birth_date {
+        Some(d) => d,
+        None => return,
+    };
+
+    // Convert other dates to age-relative placeholders
+    for (idx, entity) in entities.iter_mut().enumerate() {
+        if entity.category != "date" || Some(idx) == birth_idx {
+            continue;
+        }
+        if let Some(parsed) = parse_date(&entity.original) {
+            let (years, months) = calc_age_diff(birth, parsed);
+            if language == "tr" {
+                if years == 0 && months == 0 {
+                    entity.placeholder = "doğduğu gün".to_string();
+                } else {
+                    let frac = years as f64 + months as f64 / 12.0;
+                    entity.placeholder = format!("{:.2} yaşında", frac);
+                }
+            } else {
+                let frac = years as f64 + months as f64 / 12.0;
+                entity.placeholder = format!("at age {:.2} yrs", frac);
+            }
+        }
     }
 }

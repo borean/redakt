@@ -49,7 +49,10 @@ pub async fn scan_document(
     language: String,
     llm: State<'_, LlmState>,
 ) -> Result<ScanResult, String> {
-    let entities = anonymizer::detect_pii(&llm, &text, &language).await?;
+    let mut entities = anonymizer::detect_pii(&llm, &text, &language).await?;
+
+    // Apply age conversion (converts date placeholders to age-relative)
+    anonymizer::apply_age_conversion(&mut entities, &text, &language);
 
     let highlighted = redactor::render_highlighted_html(&text, &entities);
     let redacted = redactor::render_redacted_html(&text, &entities);
