@@ -10,6 +10,8 @@ pub struct PIIEntity {
     pub enabled: bool,
     pub start: Option<usize>,
     pub end: Option<usize>,
+    #[serde(default)]
+    pub manual: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

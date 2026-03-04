@@ -61,6 +61,9 @@ const translations = {
         chip_email: 'E-POSTA',
         chip_institution: 'KURUM',
         chip_age: 'YAŞ',
+        chip_manual: 'ELLE',
+        redact_selection: 'KARART',
+        already_marked: 'Bu metin zaten karartma için işaretlendi',
         birth_label: 'DT:',
         download_wait: 'Model indiriliyor. Bu tek seferlik bir indirmedir — tamamlandığında uygulama hazır olacak.',
         download_onetime: 'Tek seferlik indirme · tamamlandığında otomatik başlar',
@@ -106,6 +109,9 @@ const translations = {
         chip_email: 'EMAIL',
         chip_institution: 'INST',
         chip_age: 'AGE',
+        chip_manual: 'MANUAL',
+        redact_selection: 'REDACT',
+        already_marked: 'This text is already marked for redaction',
         birth_label: 'DOB:',
         download_wait: 'Model is still downloading. This is a one-time download — the app will be ready once it completes.',
         download_onetime: 'One-time download · auto-starts when complete',
@@ -482,16 +488,18 @@ function buildEntityTable() {
         const colors = {
             name: '#d46b6b', date: '#d4884e', id: '#d4a04e', address: '#6bbd6b',
             phone: '#5ba8b5', email: '#7aabdb', institution: '#9b8ec4', age: '#c47a8e',
+            manual: '#6b8fd4',
         };
         const color = colors[entity.category] || '#808080';
+        const isManual = entity.manual;
 
         tr.innerHTML = `
             <td><input type="checkbox" ${entity.enabled ? 'checked' : ''} data-idx="${idx}"></td>
             <td style="color:${color};font-weight:700">${idx + 1}</td>
             <td>${escapeHtml(entity.original)}</td>
-            <td><span class="entity-type" style="background:${color}22;color:${color};border:1px solid ${color}66">${entity.category.toUpperCase()}</span></td>
+            <td><span class="entity-type" style="background:${color}22;color:${color};border:1px solid ${color}66">${(t(`chip_${entity.category}`) || entity.category).toUpperCase()}</span></td>
             <td style="color:var(--text-dim)">${entity.placeholder}</td>
-            <td>${Math.round(entity.confidence * 100)}%</td>
+            <td>${isManual ? '<button class="manual-delete" data-idx="' + idx + '" title="Remove">&times;</button>' : Math.round(entity.confidence * 100) + '%'}</td>
         `;
 
         // Toggle handler
@@ -500,10 +508,19 @@ function buildEntityTable() {
             refreshViews();
         });
 
+        // Delete handler for manual entities
+        const delBtn = tr.querySelector('.manual-delete');
+        if (delBtn) {
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteManualEntity(idx);
+            });
+        }
+
         // Click row to navigate to entity in both panes
         tr.style.cursor = 'pointer';
         tr.addEventListener('click', (e) => {
-            if (e.target.tagName === 'INPUT') return; // Don't navigate on checkbox click
+            if (e.target.tagName === 'INPUT' || e.target.classList.contains('manual-delete')) return;
             scrollToEntity(entity.original);
         });
 
@@ -681,6 +698,45 @@ async function refreshViews() {
             `${t('redacted_preview')} (${enabled}/${total})`;
     } catch (err) {
         console.error('Refresh failed:', err);
+    }
+}
+
+// ── Manual redaction entity CRUD ──
+function createManualEntity(text) {
+    // Check for duplicates
+    if (state.entities.some(e => e.original === text)) {
+        showToast(t('already_marked'));
+        return;
+    }
+
+    const manualCount = state.entities.filter(e => e.manual).length + 1;
+    const entity = {
+        original: text,
+        category: 'manual',
+        subcategory: null,
+        placeholder: `[REDACTED_${manualCount}]`,
+        confidence: 1.0,
+        enabled: true,
+        start: null,
+        end: null,
+        manual: true,
+    };
+
+    state.entities.push(entity);
+
+    if (state.scanned) {
+        refreshViews();
+    }
+    buildEntityTable();
+    buildChips();
+}
+
+function deleteManualEntity(idx) {
+    if (state.entities[idx]?.manual) {
+        state.entities.splice(idx, 1);
+        if (state.scanned) refreshViews();
+        buildEntityTable();
+        buildChips();
     }
 }
 
@@ -1201,4 +1257,83 @@ function updateServerUI(running, modelName) {
             }
         }
     });
+
+    // ── Manual text redaction ──
+    let redactButton = null;
+
+    function getSelectedText() {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return null;
+
+        const docPane = document.getElementById('document-text');
+        const range = selection.getRangeAt(0);
+        if (!docPane.contains(range.commonAncestorContainer)) return null;
+
+        const text = selection.toString().trim();
+        if (!text || text.length < 2) return null;
+
+        // Verify text exists in originalText (critical for Rust text-based matching)
+        if (state.originalText && state.originalText.includes(text)) return text;
+
+        // Try normalizing whitespace for cross-line selections
+        const normalized = text.replace(/\s+/g, ' ');
+        if (state.originalText && state.originalText.includes(normalized)) return normalized;
+
+        // Pre-scan: no originalText yet, just accept the selection
+        if (!state.originalText) return text;
+
+        return null;
+    }
+
+    function showRedactButton(x, y) {
+        if (!redactButton) {
+            redactButton = document.createElement('button');
+            redactButton.className = 'redact-float-btn';
+            document.body.appendChild(redactButton);
+
+            redactButton.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            redactButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const text = getSelectedText();
+                if (text) createManualEntity(text);
+                hideRedactButton();
+                window.getSelection().removeAllRanges();
+            });
+        }
+        redactButton.textContent = t('redact_selection');
+        redactButton.style.left = `${x}px`;
+        redactButton.style.top = `${y}px`;
+        redactButton.style.display = 'block';
+    }
+
+    function hideRedactButton() {
+        if (redactButton) redactButton.style.display = 'none';
+    }
+
+    document.getElementById('document-text').addEventListener('mouseup', () => {
+        setTimeout(() => {
+            const text = getSelectedText();
+            if (text) {
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                showRedactButton(
+                    rect.left + rect.width / 2 - 30,
+                    rect.top - 32
+                );
+            } else {
+                hideRedactButton();
+            }
+        }, 10);
+    });
+
+    document.addEventListener('mousedown', (e) => {
+        if (redactButton && !redactButton.contains(e.target)) {
+            hideRedactButton();
+        }
+    });
+
 })();

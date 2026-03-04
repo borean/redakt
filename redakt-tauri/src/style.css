@@ -362,6 +362,7 @@ html[data-theme="light"] .theme-toggle .icon-light { display: flex !important; }
 .chip.email { background: #7aabdb55; border-color: #7aabdb88; color: #7aabdb; }
 .chip.institution { background: #9b8ec455; border-color: #9b8ec488; color: #9b8ec4; }
 .chip.age { background: #c47a8e55; border-color: #c47a8e88; color: #c47a8e; }
+.chip.manual { background: #6b8fd455; border-color: #6b8fd488; color: #6b8fd4; }
 
 /* ── Progress bar ── */
 .progress-bar {
@@ -611,6 +612,58 @@ html[data-theme="light"] .theme-toggle .icon-light { display: flex !important; }
     white-space: pre-wrap;
     word-wrap: break-word;
     position: relative;
+}
+
+#document-text {
+    user-select: text;
+    cursor: text;
+}
+
+/* ── Manual redaction floating button ── */
+.redact-float-btn {
+    position: fixed;
+    z-index: 200;
+    display: none;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    border: 1px solid #6b8fd488;
+    background: #6b8fd4;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: background 0.15s;
+    pointer-events: auto;
+}
+
+.redact-float-btn:hover {
+    background: #5a7bc4;
+}
+
+/* Manual entity highlight (dashed border to distinguish from auto) */
+.pii.highlight.manual {
+    border-style: dashed !important;
+}
+
+/* Delete button for manual entities in table */
+.manual-delete {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0 0.3rem;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.15s, color 0.15s;
+}
+
+.manual-delete:hover {
+    opacity: 1;
+    color: #d46b6b;
 }
 
 /* Scrollbar styling */

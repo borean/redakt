@@ -11,6 +11,7 @@ pub fn category_color(category: &str) -> &'static str {
         "email" => "#7aabdb",
         "institution" => "#9b8ec4",
         "age" => "#c47a8e",
+        "manual" => "#6b8fd4",
         _ => "#808080",
     }
 }
