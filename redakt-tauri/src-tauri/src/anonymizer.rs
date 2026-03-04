@@ -153,11 +153,19 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
                     if original.is_empty() {
                         return None;
                     }
-                    let category = normalize_category(&e.category?).to_string();
+                    let raw_cat = e.category?;
+                    let category = normalize_category(&raw_cat).to_string();
+                    // Preserve the raw LLM category as subcategory
+                    // (e.g. "date_of_birth" → category="date", subcategory="date_of_birth")
+                    let subcategory = if raw_cat.to_lowercase() != category {
+                        Some(raw_cat.to_lowercase())
+                    } else {
+                        None
+                    };
                     Some(PIIEntity {
                         original,
                         category,
-                        subcategory: None,
+                        subcategory,
                         placeholder: String::new(),
                         confidence: e.confidence.unwrap_or(0.9),
                         enabled: true,
@@ -202,11 +210,17 @@ fn parse_llm_response(raw: &str) -> Result<Vec<PIIEntity>, String> {
                     if original.is_empty() {
                         return None;
                     }
-                    let category = normalize_category(&e.category?).to_string();
+                    let raw_cat = e.category?;
+                    let category = normalize_category(&raw_cat).to_string();
+                    let subcategory = if raw_cat.to_lowercase() != category {
+                        Some(raw_cat.to_lowercase())
+                    } else {
+                        None
+                    };
                     Some(PIIEntity {
                         original,
                         category,
-                        subcategory: None,
+                        subcategory,
                         placeholder: String::new(),
                         confidence: e.confidence.unwrap_or(0.9),
                         enabled: true,
@@ -238,6 +252,8 @@ fn reclassify_misidentified(entities: &mut Vec<PIIEntity>) {
 }
 
 /// Regex-based PII supplement (catches what LLM misses)
+/// Only supplements TC Kimlik IDs — phone/email detection is left to the LLM
+/// to avoid false positives where dates get matched as phone numbers.
 fn regex_supplement(text: &str, _language: &str) -> Vec<PIIEntity> {
     let mut entities = Vec::new();
 
@@ -245,7 +261,7 @@ fn regex_supplement(text: &str, _language: &str) -> Vec<PIIEntity> {
     let tc_re = Regex::new(r"\b\d{11}\b").unwrap();
     for m in tc_re.find_iter(text) {
         let val = m.as_str();
-        // Basic TC validation: first digit != 0, checksum
+        // Basic TC validation: first digit != 0
         if val.starts_with('0') {
             continue;
         }
@@ -255,36 +271,6 @@ fn regex_supplement(text: &str, _language: &str) -> Vec<PIIEntity> {
             subcategory: Some("tc_kimlik".to_string()),
             placeholder: String::new(),
             confidence: 0.85,
-            enabled: true,
-            start: Some(m.start()),
-            end: Some(m.end()),
-        });
-    }
-
-    // Email addresses
-    let email_re = Regex::new(r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b").unwrap();
-    for m in email_re.find_iter(text) {
-        entities.push(PIIEntity {
-            original: m.as_str().to_string(),
-            category: "email".to_string(),
-            subcategory: None,
-            placeholder: String::new(),
-            confidence: 0.95,
-            enabled: true,
-            start: Some(m.start()),
-            end: Some(m.end()),
-        });
-    }
-
-    // Phone numbers (Turkish format)
-    let phone_re = Regex::new(r"\b(?:0|\+90\s?)?(?:\d[\s.-]?){10}\b").unwrap();
-    for m in phone_re.find_iter(text) {
-        entities.push(PIIEntity {
-            original: m.as_str().trim().to_string(),
-            category: "phone".to_string(),
-            subcategory: None,
-            placeholder: String::new(),
-            confidence: 0.80,
             enabled: true,
             start: Some(m.start()),
             end: Some(m.end()),
