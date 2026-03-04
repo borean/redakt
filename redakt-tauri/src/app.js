@@ -17,6 +17,7 @@ const state = {
     scanned: false,
     downloading: false,
     downloadingModelId: null,
+    downloadingModelName: null,
     downloadPercent: 0,
 };
 
@@ -695,6 +696,7 @@ async function populateModels() {
 async function downloadAndSwitchModel(modelId, modelName) {
     state.downloading = true;
     state.downloadingModelId = modelId;
+    state.downloadingModelName = modelName;
     showDownloadProgress(modelName);
 
     const unlisten = await listen('download-progress', (event) => {
@@ -727,6 +729,7 @@ async function downloadAndSwitchModel(modelId, modelName) {
     } finally {
         state.downloading = false;
         state.downloadingModelId = null;
+        state.downloadingModelName = null;
         unlisten();
     }
 }
@@ -963,9 +966,8 @@ function updateDownloadProgress(percent, speedMbps, etaSecs, downloaded, total) 
     const pct = Math.round(percent * 10) / 10;
     pctEl.textContent = `${pct}%`;
     if (barEl) {
-        barEl.style.width = `${pct}%`;
-        // Force repaint to ensure bar renders in WebKit
-        barEl.offsetWidth;
+        // Use fully inline styles to ensure WebKit renders the fill
+        barEl.style.cssText = `width:${pct}%;height:6px;background:#e78a4e;border-radius:3px;transition:width 0.4s ease;`;
     }
 
     // Format sizes
@@ -994,10 +996,11 @@ function updateDownloadProgress(percent, speedMbps, etaSecs, downloaded, total) 
     const progressBar = document.getElementById('progress-bar');
     progressBar.style.setProperty('--progress', `${pct}%`);
 
-    // Update status bar text
+    // Update status bar text with specific model name
+    const dlName = state.downloadingModelName || 'Qwen 3.5';
     const statusText = state.language === 'tr'
-        ? `Qwen 3.5 indiriliyor... ${pct}%`
-        : `Downloading Qwen 3.5... ${pct}%`;
+        ? `${dlName} indiriliyor... ${pct}%`
+        : `Downloading ${dlName}... ${pct}%`;
     document.getElementById('status-text').textContent = statusText;
 }
 
