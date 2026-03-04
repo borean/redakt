@@ -454,17 +454,16 @@ html[data-theme="light"] .theme-toggle .icon-light { display: flex !important; }
     position: relative;
 }
 
-.download-bar-fill {
+.download-bar-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
     height: 100%;
-    min-height: 6px;
-    background-color: var(--accent);
+    width: var(--dl-progress, 0%);
+    background: var(--accent);
     border-radius: 3px;
-    transition: width 0.5s ease;
-    width: 0%;
-}
-
-html[data-theme="light"] .download-bar-fill {
-    background-color: #b45309;
+    transition: width 0.4s ease;
 }
 
 .download-stats {

@@ -1041,9 +1041,7 @@ function showDownloadProgress(modelName) {
             <div class="download-title">${state.language === 'tr' ? 'MODEL İNDİRİLİYOR' : 'DOWNLOADING MODEL'}</div>
             <div class="download-model-name">${displayName} · Q4_K_M · GGUF</div>
             <div class="download-percent" id="dl-percent">0%</div>
-            <div class="download-bar-wrap">
-                <div class="download-bar-fill" id="dl-bar"></div>
-            </div>
+            <div class="download-bar-wrap"></div>
             <div class="download-stats">
                 <span id="dl-size">0 MB / 0 GB</span>
                 <span id="dl-speed">-- MB/s</span>
@@ -1098,7 +1096,7 @@ function updateDownloadProgress(percent, speedMbps, etaSecs, downloaded, total) 
     }
 
     const pctEl = document.getElementById('dl-percent');
-    const barEl = document.getElementById('dl-bar');
+    const barWrap = document.querySelector('.download-bar-wrap');
     const sizeEl = document.getElementById('dl-size');
     const speedEl = document.getElementById('dl-speed');
     const etaEl = document.getElementById('dl-eta');
@@ -1107,9 +1105,8 @@ function updateDownloadProgress(percent, speedMbps, etaSecs, downloaded, total) 
 
     const pct = Math.round(percent * 10) / 10;
     pctEl.textContent = `${pct}%`;
-    if (barEl) {
-        // Use fully inline styles to ensure WebKit renders the fill
-        barEl.style.cssText = `width:${pct}%;height:6px;background:#e78a4e;border-radius:3px;transition:width 0.4s ease;`;
+    if (barWrap) {
+        barWrap.style.setProperty('--dl-progress', `${pct}%`);
     }
 
     // Format sizes
