@@ -62,9 +62,8 @@ pub async fn scan_document(
         map
     };
 
-    // Localized category names for the summary
-    let cat_label = |cat: &str| -> &str {
-        if language == "tr" {
+    let summary = if language == "tr" {
+        let cat_label_tr = |cat: &str| -> &'static str {
             match cat {
                 "name" => "ad",
                 "date" => "tarih",
@@ -74,20 +73,15 @@ pub async fn scan_document(
                 "email" => "e-posta",
                 "institution" => "kurum",
                 "age" => "yaş",
-                _ => cat,
+                _ => "diğer",
             }
-        } else {
-            cat
-        }
-    };
-
-    let summary = if language == "tr" {
+        };
         format!(
             "{} KV tespit edildi: {}",
             entities.len(),
             category_counts
                 .iter()
-                .map(|(k, v)| format!("{} {}", v, cat_label(k)))
+                .map(|(k, v)| format!("{} {}", v, cat_label_tr(k)))
                 .collect::<Vec<_>>()
                 .join(", ")
         )
