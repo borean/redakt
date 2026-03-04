@@ -3,46 +3,42 @@
 ## What is this?
 Redakt is a **local** medical document de-identification desktop app. It detects and redacts PII (names, dates, IDs, addresses, etc.) from medical documents using a local LLM — no cloud, no internet required after initial model download.
 
-**Stack**: Python 3.14 · PySide6 (Qt) · llama.cpp · Qwen3.5 (3B GGUF) · PyInstaller
+**Stack**: Tauri 2 (Rust) · Vanilla JS · llama.cpp sidecar · Qwen3.5 GGUF
 
 ## Project Layout
 
 ```
-redakt/
-  __main__.py          # Entry point
-  app.py               # QApplication setup, window icon, theme init
-  constants.py         # App name, supported extensions, Language enum
-  core/
-    anonymizer.py      # PII detection engine (LLM + regex), date parsing, age conversion
-    entities.py        # PIIEntity, PIIResponse dataclasses
-    llamacpp_manager.py # llama-server process lifecycle & HTTP inference
-    prompts.py         # System/user prompts for TR and EN
-    redactor.py        # Text highlighting, redaction rendering, CATEGORY_COLORS
-    md_renderer.py     # Markdown export of redacted documents
-  ui/
-    main_window.py     # Main application window (~1500 lines)
-    i18n.py            # All UI strings: t(key, lang) → TR/EN translations
-    status_bar.py      # Status bar: Ready/Processing/Error + "100% LOCAL" badge
-    settings_dialog.py # Settings (theme, language, model path)
-    setup_wizard.py    # First-run setup wizard
-    theme.py           # ThemeManager with dark/light mode support
-  parsers/             # PDF, DOCX, image text extraction
-  api/                 # REST API for programmatic access
-assets/
-  icon.png             # App icon (used for window/taskbar)
-  icon.icns            # macOS app bundle icon
-  icon.ico             # Windows app icon
-manifesto/             # Marketing website (deployed via Vercel)
-  index.html           # Single-page site with download links
-tests/
-  test_age_conversion.py  # Main test suite (100+ tests)
-Redakt.spec            # PyInstaller build spec
+redakt-tauri/
+  src-tauri/
+    src/
+      main.rs           # Entry point → lib.rs
+      lib.rs            # Tauri app setup, plugins, state
+      commands.rs       # 13 IPC command handlers
+      entities.rs       # PIIEntity, ScanResult, AppSettings
+      anonymizer.rs     # PII detection (LLM + regex), age conversion, date parsing
+      llm.rs            # llama-server process lifecycle & HTTP inference
+      redactor.rs       # HTML rendering, CATEGORY_COLORS
+      download.rs       # Model catalog & GGUF download with progress
+      export.rs         # DOCX/PDF/Markdown export
+    Cargo.toml          # Dependencies: tauri 2, tokio, reqwest, chrono, regex
+    binaries/           # llama-server sidecar (per-platform, downloaded by CI)
+    icons/              # App icons (png, icns, ico)
+    tauri.conf.json     # Tauri config (version, window, CSP, bundle settings)
+  src/
+    app.js              # Frontend: state, i18n (TR/EN), IPC calls, DOM
+    index.html          # HTML structure with drag-drop, entity table, chips
+    style.css           # Dark/light theme, responsive layout
+manifesto/              # Marketing website (deployed via Vercel)
+  index.html            # Single-page site with download links
+.github/workflows/
+  release.yml           # CI/CD: builds macOS (ARM+Intel), Windows, Linux
 ```
 
 ## Key Patterns
 
-### i18n
-All UI strings go through `t(key, lang)` from `redakt/ui/i18n.py`. Never hardcode English strings in UI code. The `Language` enum is in `constants.py` (EN, TR).
+### IPC Architecture
+Frontend calls Rust via `window.__TAURI__.core.invoke(command, args)`.
+Backend emits events via `app.emit()` (e.g., download progress).
 
 ### PII Detection Pipeline
 1. LLM inference via llama.cpp HTTP API (structured JSON output)
@@ -50,38 +46,38 @@ All UI strings go through `t(key, lang)` from `redakt/ui/i18n.py`. Never hardcod
 3. Age conversion: 4-strategy cascade to find birth date, then converts dates to patient age
 
 ### Date Parsing
-`Anonymizer._parse_date()` handles 10+ formats including:
+`anonymizer.rs::_parse_date()` handles 10+ formats including:
 - Standard: DD.MM.YYYY, DD/MM/YYYY, YYYY-MM-DD
 - Turkish text: "15 Ocak 2024"
-- Standalone years with context: "menarş 2022"
+- Standalone years with context
 
-### Category Chips
-Colored toggle buttons in main_window.py `_build_category_chips()`. Colors from `CATEGORY_COLORS` in `redactor.py`. White text on tinted colored backgrounds for contrast.
+### i18n
+Frontend i18n in `app.js` — TR/EN translations object. LLM prompts in `anonymizer.rs` for both languages.
 
-## Build & Test
+## Build & Run
 
 ```bash
-# Run tests
-.venv/bin/python -m pytest tests/ -q
+# Dev mode (requires llama-server sidecar in binaries/)
+cd redakt-tauri && cargo tauri dev
 
-# Build macOS app
-.venv/bin/pyinstaller Redakt.spec --noconfirm
-# Output: dist/Redakt.app
+# Production build
+cd redakt-tauri && cargo tauri build
 
-# Run from source
-.venv/bin/python -m redakt
+# CI builds all platforms via GitHub Actions on tag push (v*)
+git tag v0.3.1 && git push origin v0.3.1
 ```
 
 ## Rules
 
-- **Always rebuild after code changes**: Run `.venv/bin/pyinstaller Redakt.spec --noconfirm` after any change
 - **Bug-first testing**: When a bug is reported, write a failing test first, then fix
-- **Push after fixing**: Commit, rebuild, and push to main after completing fixes
-- **No preview_start**: This is a desktop app, not a web server. Verify via tests + build + smoke test
+- **Push after fixing**: Commit and push to main after completing fixes
+- **No preview_start**: This is a desktop app, not a web server
+- **CI/CD handles releases**: Push a `v*` tag to trigger cross-platform builds
 
 ## Releases
 
 - GitHub releases at https://github.com/borean/redakt/releases
-- macOS (Apple Silicon): `Redakt-macOS-arm64.zip`
-- Windows/Linux: Coming soon
-- Manifesto site links to latest release download
+- macOS: `.dmg` (Apple Silicon + Intel)
+- Windows: `.exe` installer + `.msi`
+- Linux: `.deb` + `.rpm`
+- Manifesto site links to latest release via `releases/latest/download/`
