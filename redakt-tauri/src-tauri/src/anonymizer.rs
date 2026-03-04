@@ -735,13 +735,17 @@ pub fn apply_age_conversion(
             if language == "tr" {
                 if years == 0 && months == 0 {
                     entity.placeholder = "doğduğu gün".to_string();
+                } else if months == 0 {
+                    entity.placeholder = format!("{} yaşında", years);
                 } else {
-                    let frac = years as f64 + months as f64 / 12.0;
-                    entity.placeholder = format!("{:.2} yaşında", frac);
+                    entity.placeholder = format!("{} yıl {} ay", years, months);
                 }
+            } else if years == 0 && months == 0 {
+                entity.placeholder = "at birth".to_string();
+            } else if months == 0 {
+                entity.placeholder = format!("age {}", years);
             } else {
-                let frac = years as f64 + months as f64 / 12.0;
-                entity.placeholder = format!("at age {:.2} yrs", frac);
+                entity.placeholder = format!("age {} yr {} mo", years, months);
             }
         }
     }

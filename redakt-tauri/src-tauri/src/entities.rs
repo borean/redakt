@@ -25,6 +25,7 @@ pub struct ScanResult {
 pub struct AppSettings {
     pub language: String,
     pub theme: String,
+    pub selected_model: String,
     pub gguf_path: Option<String>,
     pub llama_server_path: Option<String>,
     pub age_conversion: bool,
@@ -36,12 +37,23 @@ impl Default for AppSettings {
         Self {
             language: "en".to_string(),
             theme: "dark".to_string(),
+            selected_model: "4b".to_string(),
             gguf_path: None,
             llama_server_path: None,
             age_conversion: false,
             birth_date: None,
         }
     }
+}
+
+/// A model available in the catalog, with download status
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ModelCatalogEntry {
+    pub id: String,
+    pub name: String,
+    pub size_gb: f64,
+    pub downloaded: bool,
+    pub active: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -120,12 +120,21 @@ pub fn render_redacted_html(text: &str, entities: &[PIIEntity]) -> String {
         if *start > pos {
             html.push_str(&html_escape(&text[pos..*start]).replace('\n', "<br>"));
         }
-        let block_len = entity.original.len().max(3);
-        let blocks: String = std::iter::repeat('\u{2588}').take(block_len).collect();
-        html.push_str(&format!(
-            "<span class=\"pii redacted\" style=\"background:#808080;color:#808080;border-radius:1px;letter-spacing:-0.5px;font-size:0.65rem;user-select:none\">{}</span>",
-            blocks
-        ));
+        // Age-converted placeholders show readable text instead of blocks
+        if is_age_placeholder(&entity.placeholder) {
+            let color = category_color("age");
+            html.push_str(&format!(
+                "<span class=\"pii highlight age\" style=\"background:{}22;color:{};border:1px solid {}66;border-radius:2px;padding:0 2px;font-weight:600\">{}</span>",
+                color, color, color, html_escape(&entity.placeholder)
+            ));
+        } else {
+            let block_len = entity.original.len().max(3);
+            let blocks: String = std::iter::repeat('\u{2588}').take(block_len).collect();
+            html.push_str(&format!(
+                "<span class=\"pii redacted\" style=\"background:#808080;color:#808080;border-radius:1px;letter-spacing:-0.5px;font-size:0.65rem;user-select:none\">{}</span>",
+                blocks
+            ));
+        }
         pos = *end;
     }
 
@@ -145,12 +154,27 @@ pub fn render_redacted_plain(text: &str, entities: &[PIIEntity]) -> String {
     sorted.sort_by(|a, b| b.original.len().cmp(&a.original.len()));
 
     for entity in sorted {
-        let block_len = entity.original.len().max(3);
-        let blocks: String = std::iter::repeat('\u{2588}').take(block_len).collect();
-        result = result.replace(&entity.original, &blocks);
+        if is_age_placeholder(&entity.placeholder) {
+            // Age-converted: show the readable age text
+            result = result.replace(&entity.original, &entity.placeholder);
+        } else {
+            let block_len = entity.original.len().max(3);
+            let blocks: String = std::iter::repeat('\u{2588}').take(block_len).collect();
+            result = result.replace(&entity.original, &blocks);
+        }
     }
 
     result
+}
+
+/// Check if a placeholder is an age-converted value (not a standard [TAG_N] placeholder)
+fn is_age_placeholder(placeholder: &str) -> bool {
+    if placeholder.is_empty() {
+        return false;
+    }
+    // Standard placeholders are like [DATE_1], [NAME_2] etc.
+    // Age-converted ones are like "at age 13.67 yrs", "13.67 yaşında", "doğduğu gün"
+    !placeholder.starts_with('[')
 }
 
 fn html_escape(text: &str) -> String {

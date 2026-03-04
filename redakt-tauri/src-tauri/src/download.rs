@@ -3,18 +3,81 @@ use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{AppHandle, Emitter};
 
-const QWEN_MODEL_NAME: &str = "Qwen3.5-35B-A3B-Q4_K_M.gguf";
-const QWEN_DOWNLOAD_URL: &str = "https://huggingface.co/unsloth/Qwen3.5-35B-A3B-GGUF/resolve/main/Qwen3.5-35B-A3B-Q4_K_M.gguf";
-const QWEN_EXPECTED_SIZE: u64 = 22_016_023_168; // Exact file size from HuggingFace
+// ── Model Catalog ──────────────────────────────────────────────
+
+pub struct ModelDef {
+    pub id: &'static str,
+    pub name: &'static str,
+    pub filename: &'static str,
+    pub url: &'static str,
+    pub size_gb: f64,
+}
+
+pub const MODEL_CATALOG: &[ModelDef] = &[
+    ModelDef {
+        id: "0.8b",
+        name: "Qwen 3.5 0.8B",
+        filename: "Qwen_Qwen3.5-0.8B-Q4_K_M.gguf",
+        url: "https://huggingface.co/bartowski/Qwen_Qwen3.5-0.8B-GGUF/resolve/main/Qwen_Qwen3.5-0.8B-Q4_K_M.gguf",
+        size_gb: 0.55,
+    },
+    ModelDef {
+        id: "2b",
+        name: "Qwen 3.5 2B",
+        filename: "Qwen_Qwen3.5-2B-Q4_K_M.gguf",
+        url: "https://huggingface.co/bartowski/Qwen_Qwen3.5-2B-GGUF/resolve/main/Qwen_Qwen3.5-2B-Q4_K_M.gguf",
+        size_gb: 1.32,
+    },
+    ModelDef {
+        id: "4b",
+        name: "Qwen 3.5 4B",
+        filename: "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+        url: "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/resolve/main/Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+        size_gb: 2.86,
+    },
+    ModelDef {
+        id: "9b",
+        name: "Qwen 3.5 9B",
+        filename: "Qwen_Qwen3.5-9B-Q4_K_M.gguf",
+        url: "https://huggingface.co/bartowski/Qwen_Qwen3.5-9B-GGUF/resolve/main/Qwen_Qwen3.5-9B-Q4_K_M.gguf",
+        size_gb: 5.87,
+    },
+    ModelDef {
+        id: "27b",
+        name: "Qwen 3.5 27B",
+        filename: "Qwen_Qwen3.5-27B-Q4_K_M.gguf",
+        url: "https://huggingface.co/bartowski/Qwen_Qwen3.5-27B-GGUF/resolve/main/Qwen_Qwen3.5-27B-Q4_K_M.gguf",
+        size_gb: 17.13,
+    },
+    ModelDef {
+        id: "35b-a3b",
+        name: "Qwen 3.5 35B-A3B",
+        filename: "Qwen3.5-35B-A3B-Q4_K_M.gguf",
+        url: "https://huggingface.co/unsloth/Qwen3.5-35B-A3B-GGUF/resolve/main/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+        size_gb: 21.0,
+    },
+];
+
+pub const DEFAULT_MODEL_ID: &str = "4b";
+
+/// Find a model definition by its ID
+pub fn find_model(id: &str) -> Option<&'static ModelDef> {
+    MODEL_CATALOG.iter().find(|m| m.id == id)
+}
+
+// ── Download Progress ──────────────────────────────────────────
 
 #[derive(Clone, Serialize)]
 pub struct DownloadProgress {
+    pub model_id: String,
     pub downloaded: u64,
     pub total: u64,
     pub percent: f64,
     pub speed_mbps: f64,
     pub eta_secs: u64,
 }
+
+// ── Model Directory ────────────────────────────────────────────
 
 /// Get the Redakt model storage directory
 pub fn get_model_dir() -> PathBuf {
@@ -34,47 +97,72 @@ pub fn get_model_dir() -> PathBuf {
     PathBuf::from("models")
 }
 
-/// Path where the default Qwen model will be stored
-pub fn get_default_model_path() -> PathBuf {
-    get_model_dir().join(QWEN_MODEL_NAME)
-}
-
-/// Check if the default Qwen model already exists and has correct file size
-pub fn model_exists() -> bool {
-    let path = get_default_model_path();
-    if !path.exists() {
-        return false;
-    }
-    // Validate exact file size (catches corrupted resume downloads)
-    if let Ok(meta) = std::fs::metadata(&path) {
-        let size = meta.len();
-        if size != QWEN_EXPECTED_SIZE {
-            // File is corrupted — delete it so it gets re-downloaded
-            eprintln!(
-                "Model file size mismatch: expected {} bytes, got {} bytes. Deleting corrupt file.",
-                QWEN_EXPECTED_SIZE, size
-            );
-            let _ = std::fs::remove_file(&path);
-            return false;
+/// Get the settings file path
+pub fn get_settings_path() -> PathBuf {
+    if let Some(home) = dirs::home_dir() {
+        #[cfg(target_os = "macos")]
+        {
+            return home.join("Library/Application Support/Redakt/settings.json");
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            return dirs::config_dir()
+                .unwrap_or_else(|| home.join(".config"))
+                .join("Redakt")
+                .join("settings.json");
         }
     }
-    true
+    PathBuf::from("settings.json")
 }
 
-/// Download the Qwen 3.5 GGUF model with resume support and progress events
-pub async fn download_model(app: AppHandle) -> Result<String, String> {
+/// Path where a specific model will be stored
+pub fn get_model_path(model_id: &str) -> Option<PathBuf> {
+    find_model(model_id).map(|m| get_model_dir().join(m.filename))
+}
+
+/// Check if a specific model is already downloaded
+pub fn is_model_downloaded(model_id: &str) -> bool {
+    if let Some(path) = get_model_path(model_id) {
+        path.exists() && std::fs::metadata(&path).map(|m| m.len() > 1_000_000).unwrap_or(false)
+    } else {
+        false
+    }
+}
+
+/// Check if the default model needs to be downloaded (backward compat)
+pub fn model_exists() -> bool {
+    // Check if ANY model from the catalog is downloaded
+    MODEL_CATALOG.iter().any(|m| {
+        let path = get_model_dir().join(m.filename);
+        path.exists() && std::fs::metadata(&path).map(|meta| meta.len() > 1_000_000).unwrap_or(false)
+    })
+}
+
+/// Get the default model path (for backward compat)
+pub fn get_default_model_path() -> PathBuf {
+    get_model_path(DEFAULT_MODEL_ID).unwrap_or_else(|| get_model_dir().join("model.gguf"))
+}
+
+// ── Download ───────────────────────────────────────────────────
+
+/// Download a model by its catalog ID with resume support and progress events
+pub async fn download_model_by_id(app: AppHandle, model_id: &str) -> Result<String, String> {
+    let model_def = find_model(model_id)
+        .ok_or_else(|| format!("Unknown model: {}", model_id))?;
+
     let model_dir = get_model_dir();
     std::fs::create_dir_all(&model_dir)
         .map_err(|e| format!("Failed to create model directory: {}", e))?;
 
-    let model_path = model_dir.join(QWEN_MODEL_NAME);
-    let partial_path = model_dir.join(format!("{}.partial", QWEN_MODEL_NAME));
+    let model_path = model_dir.join(model_def.filename);
+    let partial_path = model_dir.join(format!("{}.partial", model_def.filename));
 
     // Already downloaded — return immediately
-    if model_path.exists() {
+    if model_path.exists() && std::fs::metadata(&model_path).map(|m| m.len() > 1_000_000).unwrap_or(false) {
         let _ = app.emit(
             "download-progress",
             DownloadProgress {
+                model_id: model_id.to_string(),
                 downloaded: 1,
                 total: 1,
                 percent: 100.0,
@@ -95,12 +183,12 @@ pub async fn download_model(app: AppHandle) -> Result<String, String> {
     };
 
     let client = reqwest::Client::builder()
-        .user_agent("Redakt/0.1")
+        .user_agent("Redakt/0.2")
         .build()
         .map_err(|e| format!("HTTP client error: {}", e))?;
 
     // Build request — with Range header for resume
-    let mut req = client.get(QWEN_DOWNLOAD_URL);
+    let mut req = client.get(model_def.url);
     if existing_size > 0 {
         req = req.header("Range", format!("bytes={}-", existing_size));
     }
@@ -118,18 +206,15 @@ pub async fn download_model(app: AppHandle) -> Result<String, String> {
 
     let content_length = resp.content_length().unwrap_or(0);
     let (total_size, resume) = if existing_size > 0 && status.as_u16() == 206 {
-        // Server accepted our Range request — append remaining bytes
         (content_length + existing_size, true)
     } else {
-        // Server sent full file (200) — must start fresh, NOT append
         if existing_size > 0 {
-            // Delete the partial to avoid appending to stale data
             let _ = std::fs::remove_file(&partial_path);
         }
         (content_length, false)
     };
 
-    // Open file — append only if resuming, otherwise create fresh
+    // Open file — append only if resuming
     use std::io::Write;
     let mut file = if resume {
         std::fs::OpenOptions::new()
@@ -157,7 +242,7 @@ pub async fn download_model(app: AppHandle) -> Result<String, String> {
             .map_err(|e| format!("File write error: {}", e))?;
         downloaded += chunk.len() as u64;
 
-        // Emit progress at most every 250ms (avoids flooding)
+        // Emit progress at most every 250ms
         if last_emit.elapsed().as_millis() >= 250 {
             let elapsed = start_time.elapsed().as_secs_f64();
             let new_bytes = (downloaded - existing_size) as f64;
@@ -175,6 +260,7 @@ pub async fn download_model(app: AppHandle) -> Result<String, String> {
             };
 
             let progress = DownloadProgress {
+                model_id: model_id.to_string(),
                 downloaded,
                 total: total_size,
                 percent: if total_size > 0 {
@@ -204,6 +290,7 @@ pub async fn download_model(app: AppHandle) -> Result<String, String> {
     let _ = app.emit(
         "download-progress",
         DownloadProgress {
+            model_id: model_id.to_string(),
             downloaded: total_size,
             total: total_size,
             percent: 100.0,
@@ -213,4 +300,9 @@ pub async fn download_model(app: AppHandle) -> Result<String, String> {
     );
 
     Ok(model_path.to_string_lossy().to_string())
+}
+
+/// Backward-compat wrapper: download the default model
+pub async fn download_model(app: AppHandle) -> Result<String, String> {
+    download_model_by_id(app, DEFAULT_MODEL_ID).await
 }

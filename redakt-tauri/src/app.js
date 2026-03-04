@@ -16,6 +16,7 @@ const state = {
     scanning: false,
     scanned: false,
     downloading: false,
+    downloadingModelId: null,
     downloadPercent: 0,
 };
 
@@ -437,8 +438,50 @@ function buildEntityTable() {
             refreshViews();
         });
 
+        // Click row to navigate to entity in both panes
+        tr.style.cursor = 'pointer';
+        tr.addEventListener('click', (e) => {
+            if (e.target.tagName === 'INPUT') return; // Don't navigate on checkbox click
+            scrollToEntity(entity.original);
+        });
+
         tbody.appendChild(tr);
     });
+}
+
+// ── Scroll to entity in both panes ──
+function scrollToEntity(originalText) {
+    // Find the PII highlight span in the left pane
+    const docPane = document.getElementById('document-text');
+    const piiSpans = docPane.querySelectorAll('.pii.highlight');
+    for (const span of piiSpans) {
+        if (span.textContent.trim() === originalText.trim()) {
+            span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Flash effect
+            span.style.outline = '2px solid var(--accent)';
+            span.style.outlineOffset = '2px';
+            setTimeout(() => {
+                span.style.outline = '';
+                span.style.outlineOffset = '';
+            }, 1500);
+            break;
+        }
+    }
+
+    // Also scroll in the redacted pane
+    const redPane = document.getElementById('redacted-preview');
+    const redSpans = redPane.querySelectorAll('.pii');
+    // We need to find the corresponding position — use index-based matching
+    let matchIdx = 0;
+    for (const span of piiSpans) {
+        if (span.textContent.trim() === originalText.trim()) {
+            if (redSpans[matchIdx]) {
+                redSpans[matchIdx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            break;
+        }
+        matchIdx++;
+    }
 }
 
 // ── Select all / none ──
@@ -489,8 +532,17 @@ document.getElementById('btn-export').addEventListener('click', async () => {
     const ext = format === 'md' ? 'md' : format;
 
     try {
+        // Default to same directory as source file, with "_redacted" suffix
+        let defaultPath = `redacted.${ext}`;
+        if (state.currentFile) {
+            const dir = state.currentFile.substring(0, state.currentFile.lastIndexOf('/') + 1) ||
+                        state.currentFile.substring(0, state.currentFile.lastIndexOf('\\') + 1);
+            const basename = state.currentFile.split('/').pop().split('\\').pop();
+            const nameWithoutExt = basename.includes('.') ? basename.substring(0, basename.lastIndexOf('.')) : basename;
+            defaultPath = `${dir}${nameWithoutExt}_redacted.${ext}`;
+        }
         const path = await save({
-            defaultPath: `redacted.${ext}`,
+            defaultPath,
             filters: [{ name: format.toUpperCase(), extensions: [ext] }],
         });
 
@@ -502,7 +554,10 @@ document.getElementById('btn-export').addEventListener('click', async () => {
                 format,
                 outputPath: path,
             });
-            setStatus('success', `Exported to ${path.split('/').pop()}`);
+            const filename = path.split('/').pop().split('\\').pop();
+            setStatus('success', state.language === 'tr'
+                ? `Dışa aktarıldı: ${filename}`
+                : `Exported to ${filename}`);
         }
     } catch (err) {
         setStatus('error', err.toString());
@@ -553,56 +608,103 @@ document.getElementById('btn-config').addEventListener('click', async () => {
 });
 
 async function populateModels() {
-    const nameEl = document.getElementById('model-name');
-    const detailsEl = document.getElementById('model-details');
-    const dlProgress = document.getElementById('model-dl-progress');
-    const select = document.getElementById('setting-model');
+    const catalogEl = document.getElementById('model-catalog');
+    if (!catalogEl) return;
 
     try {
-        const models = await invoke('list_models');
-        select.innerHTML = '';
+        const catalog = await invoke('get_model_catalog');
+        catalogEl.innerHTML = '';
 
-        if (state.downloading) {
-            // Show download in progress
-            nameEl.textContent = 'Qwen3.5-35B-A3B';
-            detailsEl.textContent = 'Q4_K_M · ~21 GB · GGUF';
-            dlProgress.style.display = '';
-            updateSettingsDownloadProgress();
-            select.style.display = 'none';
-        } else if (models.length === 0) {
-            nameEl.textContent = state.language === 'tr' ? 'Model bulunamadi' : 'No model found';
-            detailsEl.textContent = state.language === 'tr'
-                ? 'Qwen 3.5 otomatik indirilecek'
-                : 'Qwen 3.5 will auto-download';
-            dlProgress.style.display = 'none';
+        for (const model of catalog) {
+            const card = document.createElement('div');
+            card.className = `model-card${model.active ? ' active' : ''}`;
+            if (state.downloading && state.downloadingModelId === model.id) {
+                card.classList.add('downloading');
+            }
+            card.dataset.modelId = model.id;
 
-            const opt = document.createElement('option');
-            opt.value = '__download__';
-            opt.textContent = state.language === 'tr'
-                ? 'Qwen 3.5 indir (~21 GB)'
-                : 'Download Qwen 3.5 (~21 GB)';
-            select.appendChild(opt);
-            select.style.display = 'none';
-        } else {
-            const model = models[0]; // Best model (Qwen sorted first)
-            nameEl.textContent = model.name;
-            detailsEl.textContent = `${model.size_gb} GB`;
-            dlProgress.style.display = 'none';
+            let statusHtml;
+            if (model.active) {
+                statusHtml = `<span class="model-card-status active-badge">${state.language === 'tr' ? 'AKTİF' : 'ACTIVE'}</span>`;
+            } else if (model.downloaded) {
+                statusHtml = `<span class="model-card-status downloaded-badge">✓</span>`;
+            } else {
+                statusHtml = `<span class="model-card-status download-badge">${state.language === 'tr' ? 'İNDİR' : 'GET'}</span>`;
+            }
 
-            models.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m.path;
-                opt.textContent = `${m.name} (${m.size_gb} GB, ${m.quantization})`;
-                select.appendChild(opt);
+            card.innerHTML = `
+                <div class="model-card-info">
+                    <div class="model-card-name">${model.name}</div>
+                    <div class="model-card-size">${model.size_gb} GB · Q4_K_M · GGUF</div>
+                </div>
+                ${statusHtml}
+            `;
+
+            card.addEventListener('click', async () => {
+                if (model.active || state.downloading) return;
+
+                if (model.downloaded) {
+                    // Switch to this model
+                    setStatus('processing', state.language === 'tr'
+                        ? `Model değiştiriliyor: ${model.name}...`
+                        : `Switching model: ${model.name}...`);
+                    try {
+                        await invoke('switch_model', { modelId: model.id });
+                        setStatus('ready', t('ready'));
+                        await populateModels(); // Refresh catalog
+                    } catch (err) {
+                        setStatus('error', err.toString());
+                    }
+                } else {
+                    // Download this model, then switch
+                    await downloadAndSwitchModel(model.id, model.name);
+                }
             });
-            // Only show select if multiple models available
-            select.style.display = models.length > 1 ? '' : 'none';
+
+            catalogEl.appendChild(card);
         }
     } catch (err) {
-        console.error('Failed to list models:', err);
-        nameEl.textContent = '--';
-        detailsEl.textContent = '';
-        dlProgress.style.display = 'none';
+        console.error('Failed to load model catalog:', err);
+        catalogEl.innerHTML = '<div class="model-card-size" style="padding:0.5rem">Failed to load models</div>';
+    }
+}
+
+async function downloadAndSwitchModel(modelId, modelName) {
+    state.downloading = true;
+    state.downloadingModelId = modelId;
+    showDownloadProgress(modelName);
+
+    const unlisten = await listen('download-progress', (event) => {
+        const p = event.payload;
+        updateDownloadProgress(p.percent, p.speed_mbps, p.eta_secs, p.downloaded, p.total);
+    });
+
+    try {
+        setStatus('processing', state.language === 'tr'
+            ? `${modelName} indiriliyor...`
+            : `Downloading ${modelName}...`);
+
+        await invoke('download_model', { modelId });
+        hideDownloadProgress();
+
+        // Now switch to the downloaded model
+        setStatus('processing', state.language === 'tr'
+            ? `Model yükleniyor: ${modelName}...`
+            : `Loading model: ${modelName}...`);
+        await invoke('switch_model', { modelId });
+        setStatus('ready', t('ready'));
+
+        // Refresh settings if dialog is open
+        if (document.getElementById('settings-overlay').style.display === 'flex') {
+            await populateModels();
+        }
+    } catch (err) {
+        hideDownloadProgress();
+        setStatus('error', err.toString());
+    } finally {
+        state.downloading = false;
+        state.downloadingModelId = null;
+        unlisten();
     }
 }
 
@@ -716,77 +818,48 @@ async function autoStartServer() {
         const status = await invoke('get_llm_status');
         if (status.running) {
             setStatus('ready', t('ready'));
-            updateServerUI(true, status.model_name);
             return;
         }
 
-        // Find available models (Qwen sorted first)
-        const models = await invoke('list_models');
-        let model = models.find(m => m.name.toLowerCase().includes('qwen'));
+        // Load settings to get selected model
+        const settings = await invoke('get_settings');
+        const selectedModelId = settings.selected_model || '4b';
 
-        // If no Qwen but other models exist, use best available
-        if (!model && models.length > 0) {
-            model = models[0];
+        // Check if the selected model is downloaded
+        const needsDownload = await invoke('needs_model_download');
+        if (needsDownload) {
+            // Auto-download the selected model
+            const catalog = await invoke('get_model_catalog');
+            const modelInfo = catalog.find(m => m.id === selectedModelId);
+            const modelName = modelInfo ? modelInfo.name : `Qwen 3.5 ${selectedModelId}`;
+            await downloadAndSwitchModel(selectedModelId, modelName);
+            return;
         }
 
-        // No model found anywhere — auto-download Qwen 3.5
-        if (!model) {
-            const modelPath = await downloadModelWithProgress();
-            if (!modelPath) return; // Download failed
-            model = { path: modelPath, name: 'Qwen3.5-35B-A3B-Q4_K_M' };
-        }
+        // Model exists — get its path and start server
+        const modelPath = await invoke('get_default_model_path');
 
-        // Start server with the selected model
         setStatus('processing', state.language === 'tr'
-            ? `Model yükleniyor: ${model.name}...`
-            : `Loading model: ${model.name}...`);
+            ? `Model yükleniyor...`
+            : `Loading model...`);
 
         await invoke('start_llm_server', {
-            modelPath: model.path,
+            modelPath,
             serverPath: null,
         });
 
         setStatus('ready', t('ready'));
-        updateServerUI(true, model.name);
     } catch (err) {
         console.error('Auto-start failed:', err);
         setStatus('error', err.toString());
-        updateServerUI(false, null);
     }
 }
 
 // ── Model download with progress ──
-async function downloadModelWithProgress() {
-    state.downloading = true;
-    showDownloadProgress();
+// (downloadAndSwitchModel is now the primary entry point, defined above)
 
-    // Listen for progress events from Rust backend
-    const unlisten = await listen('download-progress', (event) => {
-        const p = event.payload;
-        updateDownloadProgress(p.percent, p.speed_mbps, p.eta_secs, p.downloaded, p.total);
-    });
-
-    try {
-        setStatus('processing', state.language === 'tr'
-            ? 'Qwen 3.5 indiriliyor...'
-            : 'Downloading Qwen 3.5...');
-
-        const modelPath = await invoke('download_model');
-        hideDownloadProgress();
-        return modelPath;
-    } catch (err) {
-        hideDownloadProgress();
-        setStatus('error', state.language === 'tr'
-            ? `İndirme başarısız: ${err}`
-            : `Download failed: ${err}`);
-        return null;
-    } finally {
-        state.downloading = false;
-        unlisten();
-    }
-}
-
-function showDownloadProgress() {
+function showDownloadProgress(modelName) {
+    const displayName = modelName || 'Qwen 3.5';
     const docEl = document.getElementById('document-text');
     docEl.innerHTML = `
         <div class="download-overlay" id="download-overlay">
@@ -798,7 +871,7 @@ function showDownloadProgress() {
                 </svg>
             </div>
             <div class="download-title">${state.language === 'tr' ? 'MODEL İNDİRİLİYOR' : 'DOWNLOADING MODEL'}</div>
-            <div class="download-model-name">Qwen 3.5-35B-A3B · Q4_K_M · ~21 GB</div>
+            <div class="download-model-name">${displayName} · Q4_K_M · GGUF</div>
             <div class="download-percent" id="dl-percent">0%</div>
             <div class="download-bar-wrap">
                 <div class="download-bar-fill" id="dl-bar"></div>
@@ -924,12 +997,7 @@ function hideDownloadProgress() {
 }
 
 function updateServerUI(running, modelName) {
-    // Server UI is automatic — just update model info in settings if open
-    const nameEl = document.getElementById('model-name');
-    const detailsEl = document.getElementById('model-details');
-    if (nameEl && running && modelName) {
-        nameEl.textContent = modelName;
-    }
+    // Server UI is automatic
 }
 
 // ── Init ──

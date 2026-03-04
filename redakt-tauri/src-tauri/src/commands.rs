@@ -1,27 +1,9 @@
 use crate::anonymizer;
 use crate::download;
-use crate::entities::{AppSettings, LlmStatus, PIIEntity, ScanResult};
-use crate::llm::{GGUFInfo, LlmState};
+use crate::entities::{AppSettings, LlmStatus, ModelCatalogEntry, PIIEntity, ScanResult};
+use crate::llm::LlmState;
 use crate::redactor;
-use serde::Serialize;
-use std::sync::Mutex;
 use tauri::State;
-
-struct AppState {
-    current_text: Mutex<String>,
-    entities: Mutex<Vec<PIIEntity>>,
-    settings: Mutex<AppSettings>,
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            current_text: Mutex::new(String::new()),
-            entities: Mutex::new(Vec::new()),
-            settings: Mutex::new(AppSettings::default()),
-        }
-    }
-}
 
 /// Open and extract text from a file
 #[tauri::command]
@@ -117,20 +99,27 @@ pub async fn export_document(
     format: String,
     output_path: String,
 ) -> Result<String, String> {
+    let redacted = redactor::render_redacted_plain(&text, &entities);
+
     match format.as_str() {
         "txt" => {
-            let redacted = redactor::render_redacted_plain(&text, &entities);
             std::fs::write(&output_path, &redacted)
                 .map_err(|e| format!("Failed to write file: {}", e))?;
             Ok(output_path)
         }
         "md" => {
-            let redacted = redactor::render_redacted_plain(&text, &entities);
             let md = format!(
                 "# Redacted Document\n\n{}\n\n---\n*De-identified by Redakt*\n",
                 redacted
             );
             std::fs::write(&output_path, &md)
+                .map_err(|e| format!("Failed to write file: {}", e))?;
+            Ok(output_path)
+        }
+        "pdf" | "docx" => {
+            // For PDF/DOCX, export as TXT with the selected extension
+            // (full PDF/DOCX generation is planned for a future release)
+            std::fs::write(&output_path, &redacted)
                 .map_err(|e| format!("Failed to write file: {}", e))?;
             Ok(output_path)
         }
@@ -180,9 +169,9 @@ pub async fn stop_llm_server(llm: State<'_, LlmState>) -> Result<(), String> {
     Ok(())
 }
 
-/// List all discovered GGUF model files
+/// List all discovered GGUF model files (backward compat)
 #[tauri::command]
-pub fn list_models() -> Vec<GGUFInfo> {
+pub fn list_models() -> Vec<crate::llm::GGUFInfo> {
     LlmState::find_models()
 }
 
@@ -192,18 +181,123 @@ pub fn find_server() -> Option<String> {
     LlmState::find_server().map(|p| p.to_string_lossy().to_string())
 }
 
+// ── Settings persistence ──────────────────────────────────────
+
+fn load_settings_from_disk() -> AppSettings {
+    let path = download::get_settings_path();
+    if path.exists() {
+        if let Ok(data) = std::fs::read_to_string(&path) {
+            if let Ok(settings) = serde_json::from_str::<AppSettings>(&data) {
+                return settings;
+            }
+        }
+    }
+    AppSettings::default()
+}
+
+fn save_settings_to_disk(settings: &AppSettings) -> Result<(), String> {
+    let path = download::get_settings_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create settings directory: {}", e))?;
+    }
+    let data = serde_json::to_string_pretty(settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+    std::fs::write(&path, &data)
+        .map_err(|e| format!("Failed to write settings: {}", e))?;
+    Ok(())
+}
+
 /// Get application settings
 #[tauri::command]
 pub fn get_settings() -> AppSettings {
-    // TODO: Load from persistent storage
-    AppSettings::default()
+    load_settings_from_disk()
 }
 
 /// Save application settings
 #[tauri::command]
 pub fn save_settings(settings: AppSettings) -> Result<(), String> {
-    // TODO: Save to persistent storage
-    Ok(())
+    save_settings_to_disk(&settings)
+}
+
+// ── Model catalog ─────────────────────────────────────────────
+
+/// Get the model catalog with download status for each model
+#[tauri::command]
+pub fn get_model_catalog() -> Vec<ModelCatalogEntry> {
+    let settings = load_settings_from_disk();
+    download::MODEL_CATALOG
+        .iter()
+        .map(|m| ModelCatalogEntry {
+            id: m.id.to_string(),
+            name: m.name.to_string(),
+            size_gb: m.size_gb,
+            downloaded: download::is_model_downloaded(m.id),
+            active: settings.selected_model == m.id,
+        })
+        .collect()
+}
+
+/// Download a specific model by ID
+#[tauri::command]
+pub async fn download_model(app: tauri::AppHandle, model_id: Option<String>) -> Result<String, String> {
+    let id = model_id.unwrap_or_else(|| {
+        let settings = load_settings_from_disk();
+        settings.selected_model
+    });
+    download::download_model_by_id(app, &id).await
+}
+
+/// Switch to a different model: save settings + restart server
+#[tauri::command]
+pub async fn switch_model(
+    model_id: String,
+    llm: State<'_, LlmState>,
+) -> Result<bool, String> {
+    // Verify the model is downloaded
+    let model_path = download::get_model_path(&model_id)
+        .ok_or_else(|| format!("Unknown model: {}", model_id))?;
+
+    if !model_path.exists() {
+        return Err(format!("Model not downloaded yet: {}", model_id));
+    }
+
+    // Save the selection
+    let mut settings = load_settings_from_disk();
+    settings.selected_model = model_id.clone();
+    save_settings_to_disk(&settings)?;
+
+    // Restart LLM server with the new model
+    llm.stop_server();
+    llm.start_server(
+        model_path.to_string_lossy().as_ref(),
+        None,
+    )?;
+
+    let ready = llm.wait_for_ready(60).await;
+    if !ready {
+        llm.stop_server();
+        return Err("Server failed to start with new model within 60 seconds".to_string());
+    }
+
+    Ok(true)
+}
+
+/// Check if the selected model needs to be downloaded
+#[tauri::command]
+pub fn needs_model_download() -> bool {
+    let settings = load_settings_from_disk();
+    !download::is_model_downloaded(&settings.selected_model)
+}
+
+/// Get the path where the selected model will be stored
+#[tauri::command]
+pub fn get_default_model_path() -> String {
+    let settings = load_settings_from_disk();
+    download::get_model_path(&settings.selected_model)
+        .unwrap_or_else(download::get_default_model_path)
+        .to_string_lossy()
+        .to_string()
 }
 
 /// Toggle a specific entity on/off and return updated HTML
@@ -236,34 +330,13 @@ pub fn toggle_entity(
     })
 }
 
-/// Download the default Qwen 3.5 model with progress events
-#[tauri::command]
-pub async fn download_model(app: tauri::AppHandle) -> Result<String, String> {
-    download::download_model(app).await
-}
-
-/// Check if the default model needs to be downloaded
-#[tauri::command]
-pub fn needs_model_download() -> bool {
-    !download::model_exists()
-}
-
-/// Get the path where the default model will be stored
-#[tauri::command]
-pub fn get_default_model_path() -> String {
-    download::get_default_model_path()
-        .to_string_lossy()
-        .to_string()
-}
-
-// ── File parsers ──
+// ── File parsers ──────────────────────────────────────────────
 
 fn extract_pdf_text(path: &str) -> Result<String, String> {
     pdf_extract::extract_text(path).map_err(|e| format!("PDF extraction failed: {}", e))
 }
 
 fn extract_docx_text(path: &str) -> Result<String, String> {
-    // Simple DOCX extraction: unzip and parse document.xml
     let file = std::fs::File::open(path).map_err(|e| format!("Cannot open file: {}", e))?;
     let mut archive =
         zip::ZipArchive::new(file).map_err(|e| format!("Invalid DOCX file: {}", e))?;
@@ -278,7 +351,6 @@ fn extract_docx_text(path: &str) -> Result<String, String> {
         return Err("No document.xml found in DOCX".to_string());
     }
 
-    // Strip XML tags, extract text content
     Ok(strip_xml_tags(&doc_xml))
 }
 
@@ -297,18 +369,13 @@ fn strip_xml_tags(xml: &str) -> String {
                 in_tag = false;
                 let tag = tag_buf.as_str();
 
-                // End of paragraph → newline
                 if tag == "/w:p" {
                     if !result.ends_with('\n') {
                         result.push('\n');
                     }
-                }
-                // Line break within paragraph
-                else if tag == "w:br" || tag == "w:br/" || tag.starts_with("w:br ") {
+                } else if tag == "w:br" || tag == "w:br/" || tag.starts_with("w:br ") {
                     result.push('\n');
-                }
-                // Tab character
-                else if tag == "w:tab" || tag == "w:tab/" || tag.starts_with("w:tab ") {
+                } else if tag == "w:tab" || tag == "w:tab/" || tag.starts_with("w:tab ") {
                     result.push('\t');
                 }
 
@@ -323,7 +390,6 @@ fn strip_xml_tags(xml: &str) -> String {
         }
     }
 
-    // Clean up XML entities
     let cleaned = result
         .replace("&amp;", "&")
         .replace("&lt;", "<")
@@ -331,7 +397,6 @@ fn strip_xml_tags(xml: &str) -> String {
         .replace("&quot;", "\"")
         .replace("&apos;", "'");
 
-    // Collapse excessive blank lines (3+ newlines → 2)
     let mut final_result = String::new();
     let mut newline_count = 0;
     for ch in cleaned.chars() {

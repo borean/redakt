@@ -122,10 +122,7 @@
         <div class="dialog-body">
             <div class="setting-group">
                 <label class="setting-label" data-i18n="model_label">Model</label>
-                <div class="model-info" id="model-info">
-                    <div class="model-name" id="model-name">--</div>
-                    <div class="model-details" id="model-details"></div>
-                </div>
+                <div class="model-catalog" id="model-catalog"></div>
                 <div class="model-dl-progress" id="model-dl-progress" style="display:none">
                     <div class="model-dl-bar-wrap">
                         <div class="model-dl-bar-fill" id="model-dl-bar"></div>
@@ -136,13 +133,10 @@
                         <span id="model-dl-eta">--</span>
                     </div>
                 </div>
-                <select class="setting-select" id="setting-model" style="display:none">
-                    <option value="">No models found</option>
-                </select>
             </div>
             <div class="setting-divider"></div>
             <div class="about-section">
-                <div class="about-name">REDAKT <span class="about-version">v0.1.0</span></div>
+                <div class="about-name">REDAKT <span class="about-version">v0.2.0</span></div>
                 <p class="about-desc" data-i18n="about_desc">Local medical document de-identification. Detects and redacts personal identifiable information from clinical documents using a local LLM. No data ever leaves your machine.</p>
                 <div class="about-meta">
                     <span data-i18n="about_developer">Developer: Dr. Hasan Bora Ulukapı</span>
