@@ -1225,40 +1225,8 @@ function updateServerUI(running, modelName) {
     // Server UI is automatic
 }
 
-// ── Init ──
-(async function init() {
-    // Detect browser language
-    const browserLang = (navigator.language || '').toLowerCase();
-    setLanguage(browserLang.startsWith('tr') ? 'tr' : 'en');
-
-    // Auto-detect model and start LLM server
-    await autoStartServer();
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        if (e.metaKey || e.ctrlKey) {
-            switch (e.key) {
-                case 'o':
-                    e.preventDefault();
-                    document.getElementById('btn-open').click();
-                    break;
-                case 's':
-                    e.preventDefault();
-                    document.getElementById('btn-scan').click();
-                    break;
-                case 'e':
-                    e.preventDefault();
-                    document.getElementById('btn-export').click();
-                    break;
-                case ',':
-                    e.preventDefault();
-                    document.getElementById('btn-config').click();
-                    break;
-            }
-        }
-    });
-
-    // ── Manual text redaction ──
+// ── Manual text redaction (set up immediately, no async dependency) ──
+(function setupManualRedaction() {
     let redactButton = null;
 
     function getSelectedText() {
@@ -1266,6 +1234,7 @@ function updateServerUI(running, modelName) {
         if (!selection || selection.isCollapsed) return null;
 
         const docPane = document.getElementById('document-text');
+        if (!docPane) return null;
         const range = selection.getRangeAt(0);
         if (!docPane.contains(range.commonAncestorContainer)) return null;
 
@@ -1286,8 +1255,7 @@ function updateServerUI(running, modelName) {
         const crlfNormalized = text.replace(/\r\n/g, '\n');
         if (crlfNormalized !== text && state.originalText.includes(crlfNormalized)) return crlfNormalized;
 
-        // Fallback: if document has text loaded, accept the selection anyway
-        // (the Rust renderer will handle text not found gracefully)
+        // Fallback: accept the selection anyway
         return text;
     }
 
@@ -1341,5 +1309,38 @@ function updateServerUI(running, modelName) {
             hideRedactButton();
         }
     });
+})();
 
+// ── Init ──
+(async function init() {
+    // Detect browser language
+    const browserLang = (navigator.language || '').toLowerCase();
+    setLanguage(browserLang.startsWith('tr') ? 'tr' : 'en');
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.metaKey || e.ctrlKey) {
+            switch (e.key) {
+                case 'o':
+                    e.preventDefault();
+                    document.getElementById('btn-open').click();
+                    break;
+                case 's':
+                    e.preventDefault();
+                    document.getElementById('btn-scan').click();
+                    break;
+                case 'e':
+                    e.preventDefault();
+                    document.getElementById('btn-export').click();
+                    break;
+                case ',':
+                    e.preventDefault();
+                    document.getElementById('btn-config').click();
+                    break;
+            }
+        }
+    });
+
+    // Auto-detect model and start LLM server (last — can be slow)
+    await autoStartServer();
 })();
