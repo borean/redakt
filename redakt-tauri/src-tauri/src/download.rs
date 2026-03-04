@@ -15,27 +15,6 @@ pub struct ModelDef {
 
 pub const MODEL_CATALOG: &[ModelDef] = &[
     ModelDef {
-        id: "0.8b",
-        name: "Qwen 3.5 0.8B",
-        filename: "Qwen_Qwen3.5-0.8B-Q4_K_M.gguf",
-        url: "https://huggingface.co/bartowski/Qwen_Qwen3.5-0.8B-GGUF/resolve/main/Qwen_Qwen3.5-0.8B-Q4_K_M.gguf",
-        size_gb: 0.55,
-    },
-    ModelDef {
-        id: "2b",
-        name: "Qwen 3.5 2B",
-        filename: "Qwen_Qwen3.5-2B-Q4_K_M.gguf",
-        url: "https://huggingface.co/bartowski/Qwen_Qwen3.5-2B-GGUF/resolve/main/Qwen_Qwen3.5-2B-Q4_K_M.gguf",
-        size_gb: 1.32,
-    },
-    ModelDef {
-        id: "4b",
-        name: "Qwen 3.5 4B",
-        filename: "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
-        url: "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/resolve/main/Qwen_Qwen3.5-4B-Q4_K_M.gguf",
-        size_gb: 2.86,
-    },
-    ModelDef {
         id: "9b",
         name: "Qwen 3.5 9B",
         filename: "Qwen_Qwen3.5-9B-Q4_K_M.gguf",
@@ -58,7 +37,7 @@ pub const MODEL_CATALOG: &[ModelDef] = &[
     },
 ];
 
-pub const DEFAULT_MODEL_ID: &str = "4b";
+pub const DEFAULT_MODEL_ID: &str = "9b";
 
 /// Find a model definition by its ID
 pub fn find_model(id: &str) -> Option<&'static ModelDef> {
