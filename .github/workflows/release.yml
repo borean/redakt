@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
   LLAMA_VERSION: b8196
 
@@ -170,6 +173,8 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: BT5DCKAT25
+          # Linux: AppImage needs this since FUSE is unavailable on CI
+          APPIMAGE_EXTRACT_AND_RUN: 1
         with:
           projectPath: redakt-tauri
           args: --target ${{ matrix.rust-target }}
