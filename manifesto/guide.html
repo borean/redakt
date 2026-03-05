@@ -1732,6 +1732,7 @@ document.querySelectorAll('#step3-chips .demo-chip').forEach(chip => {
         toggleCount++;
         // Complete after 2 toggles
         if (toggleCount >= 2 && !stepState.completed.has(3)) {
+            loadStep4Text();
             setTimeout(() => completeStep(3), 500);
         }
     });

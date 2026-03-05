@@ -152,7 +152,7 @@
             max-width: 800px;
         }
 
-        .hero h1 span {
+        .hero h1 span.accent {
             font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
             color: var(--accent);
         }
@@ -160,7 +160,6 @@
         /* ── Redaction bar animation ── */
         .redact-anim {
             position: relative;
-            display: inline-block;
         }
 
         .redact-anim::after {
@@ -787,7 +786,7 @@
 <!-- ── Hero ── -->
 <section class="hero">
     <div class="hero-badge" data-i18n="hero_badge">Open source &middot; Runs locally &middot; No cloud</div>
-    <h1 data-i18n-html="hero_title">De-identify <span class="redact-anim">medical documents</span>. <span>Locally.</span></h1>
+    <h1 data-i18n-html="hero_title">De-identify <span class="redact-anim">medical documents</span>. <span class="accent">Locally.</span></h1>
     <p class="subtitle" data-i18n="hero_subtitle">
         Drop in a PDF or DOCX. Redakt finds and redacts personal data
         using a local AI model. Nothing leaves your machine. Ever.
@@ -929,7 +928,7 @@
 
             // Hero
             hero_badge: 'A\u00c7IK KAYNAK \u00b7 YEREL \u00c7ALI\u015eIR \u00b7 BULUT YOK',
-            hero_title: '<span class="redact-anim">T\u0131bbi belgelerde</span> kimlik gizleme. <span>Yerel.</span>',
+            hero_title: '<span class="redact-anim">T\u0131bbi belgelerde</span> kimlik gizleme. <span class="accent">Yerel.</span>',
             hero_subtitle: 'PDF veya DOCX y\u00fckleyin. Redakt, yerel bir yapay zeka modeli kullanarak ki\u015fisel verileri bulsun ve kararts\u0131n. Hi\u00e7bir \u015fey bilgisayar\u0131n\u0131zdan \u00e7\u0131kmas\u0131n. Asla.',
             hero_download: "Redakt'\u0131 \u0130ndir",
             hero_github: "GitHub'da G\u00f6r\u00fcnt\u00fcle",
