@@ -1521,6 +1521,9 @@ function setLanguage(lang) {
 document.getElementById('lang-tr').addEventListener('click', () => setLanguage('tr'));
 document.getElementById('lang-en').addEventListener('click', () => setLanguage('en'));
 
+// ── Step state management (must be before setLanguage which calls rebuildDemos) ──
+const stepState = { completed: new Set(), current: 1 };
+
 // Initial language
 const stored = localStorage.getItem('redakt-lang');
 if (stored) {
@@ -1544,9 +1547,6 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
         if (target) target.scrollIntoView({ behavior: 'smooth' });
     });
 });
-
-// ── Step state management ──
-const stepState = { completed: new Set(), current: 1 };
 
 function makeBlocks(text) {
     return '\u2588'.repeat(Math.max(text.length, 3));
