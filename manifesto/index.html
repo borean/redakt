@@ -157,6 +157,38 @@
             color: var(--accent);
         }
 
+        /* ── Redaction bar animation ── */
+        .redact-anim {
+            position: relative;
+            display: inline-block;
+        }
+
+        .redact-anim::after {
+            content: '';
+            position: absolute;
+            top: 0.05em;
+            bottom: 0.1em;
+            left: 0;
+            right: 0;
+            background: var(--dark);
+            border-radius: 2px;
+            pointer-events: none;
+            clip-path: inset(0 100% 0 0);
+        }
+
+        .redact-anim.animate::after {
+            animation: redact-sweep 2.4s ease forwards;
+            animation-delay: 0.6s;
+        }
+
+        @keyframes redact-sweep {
+            0%   { clip-path: inset(0 100% 0 0); }
+            25%  { clip-path: inset(0 0 0 0); }
+            55%  { clip-path: inset(0 0 0 0); }
+            85%  { clip-path: inset(0 0 0 100%); }
+            100% { clip-path: inset(0 0 0 100%); }
+        }
+
         .hero .subtitle {
             font-size: 1.2rem;
             color: var(--text-secondary);
@@ -755,7 +787,7 @@
 <!-- ── Hero ── -->
 <section class="hero">
     <div class="hero-badge" data-i18n="hero_badge">Open source &middot; Runs locally &middot; No cloud</div>
-    <h1 data-i18n-html="hero_title">De-identify medical documents. <span>Locally.</span></h1>
+    <h1 data-i18n-html="hero_title">De-identify <span class="redact-anim">medical documents</span>. <span>Locally.</span></h1>
     <p class="subtitle" data-i18n="hero_subtitle">
         Drop in a PDF or DOCX. Redakt finds and redacts personal data
         using a local AI model. Nothing leaves your machine. Ever.
@@ -897,7 +929,7 @@
 
             // Hero
             hero_badge: 'A\u00c7IK KAYNAK \u00b7 YEREL \u00c7ALI\u015eIR \u00b7 BULUT YOK',
-            hero_title: 'T\u0131bbi belgelerde kimlik gizleme. <span>Yerel.</span>',
+            hero_title: '<span class="redact-anim">T\u0131bbi belgelerde</span> kimlik gizleme. <span>Yerel.</span>',
             hero_subtitle: 'PDF veya DOCX y\u00fckleyin. Redakt, yerel bir yapay zeka modeli kullanarak ki\u015fisel verileri bulsun ve kararts\u0131n. Hi\u00e7bir \u015fey bilgisayar\u0131n\u0131zdan \u00e7\u0131kmas\u0131n. Asla.',
             hero_download: "Redakt'\u0131 \u0130ndir",
             hero_github: "GitHub'da G\u00f6r\u00fcnt\u00fcle",
@@ -983,6 +1015,18 @@
 
         // Notify demo to restart with new language
         document.dispatchEvent(new CustomEvent('langchange'));
+
+        // Re-trigger redaction animation (innerHTML replacement recreates the span)
+        triggerRedactAnim();
+    }
+
+    function triggerRedactAnim() {
+        document.querySelectorAll('.redact-anim').forEach(el => {
+            el.classList.remove('animate');
+            // Force reflow to restart animation
+            void el.offsetWidth;
+            el.classList.add('animate');
+        });
     }
 
     // Toggle handlers
